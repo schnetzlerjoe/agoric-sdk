@@ -45,7 +45,7 @@ import { unsafeMakeBundleCache } from '../bundleTool.js';
 /** @type {import('ava').TestInterface<any>} */
 const test = unknownTest;
 
-// #region Support
+//#region Support
 
 // TODO path resolve these so refactors detect
 const contractRoots = {
@@ -355,7 +355,7 @@ async function setupServices(
     priceAuthority,
   };
 }
-// #endregion
+//#endregion
 
 test('first', async t => {
   const {

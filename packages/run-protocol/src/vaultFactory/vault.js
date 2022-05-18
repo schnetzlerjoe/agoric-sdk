@@ -183,16 +183,16 @@ const checkRestart = (newCollateralPre, maxDebtPre, newCollateral, newDebt) => {
 };
 
 const helperBehavior = {
-  // #region Computed constants
+  //#region Computed constants
   collateralBrand: ({ state }) => state.manager.getCollateralBrand(),
   debtBrand: ({ state }) => state.manager.getDebtBrand(),
 
   emptyCollateral: ({ facets }) =>
     AmountMath.makeEmpty(facets.helper.collateralBrand()),
   emptyDebt: ({ facets }) => AmountMath.makeEmpty(facets.helper.debtBrand()),
-  // #endregion
+  //#endregion
 
-  // #region Phase logic
+  //#region Phase logic
   /**
    * @param {MethodContext} context
    * @param {VaultPhase} newPhase
@@ -219,7 +219,7 @@ const helperBehavior = {
       X`to be closed a vault must be active or liquidated, not ${phase}`,
     );
   },
-  // #endregion
+  //#endregion
 
   /**
    * Called whenever the debt is paid or created through a transaction,
