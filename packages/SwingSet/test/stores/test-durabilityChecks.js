@@ -79,8 +79,8 @@ function m(s) {
 
 // prettier-ignore
 test('durability checks', t => {
-  const failKey = f => t.throws(f, m('key is not durable'));
-  const failVal = f => t.throws(f, m('value is not durable'));
+  const failKey = (f, s) => t.throws(f, m(s));
+  const failVal = (f, s) => t.throws(f, m(s));
   const failHold = f => t.throws(f, m('value for "held" is not durable'));
   const passKey = f => t.notThrows(f);
   const passVal = f => t.notThrows(f);
@@ -133,37 +133,63 @@ test('durability checks', t => {
 
   passKey(() => durableMap.init(aString, 'simple string key'));
   passKey(() => durableMap.set(aString, 'revise string key'));
-  failKey(() => durableMap.init(aVirtualObject, 'virtual object as key'));
+  failKey(() => durableMap.init(aVirtualObject, 'virtual object as key'),
+    /key \("\[Alleged: holder]"/,
+  );
   passKey(() => durableMap.init(aDurableObject, 'durable object as key'));
   passKey(() => durableMap.set(aDurableObject, 'revise durable object key'));
-  failKey(() => durableMap.init(aRemotableObject, 'remotable object as key'));
-  failKey(() => durableMap.init(aVirtualStore, 'virtual store as key'));
+  failKey(() => durableMap.init(aRemotableObject, 'remotable object as key'),
+    /key \("\[Alleged: what]"\)/,
+  );
+  failKey(() => durableMap.init(aVirtualStore, 'virtual store as key'),
+    /key \("\[Alleged: mapStore]"/,
+  );
   passKey(() => durableMap.init(aDurableStore, 'durable store as key'));
   passKey(() => durableMap.set(aDurableStore, 'revise durable store key'));
   passKey(() => durableMap.init(durableHolderKind, 'durable kind as key'));
   passKey(() => durableMap.set(durableHolderKind, 'revise durable kind key'));
 
   passVal(() => durableMap.init('simple string value', aString));
-  failVal(() => durableMap.init('virtual object value', aVirtualObject));
+  failVal(() => durableMap.init('virtual object value', aVirtualObject),
+    /value is not durable: "\[Alleged: holder]" at slot/,
+    );
   passVal(() => durableMap.init('durable object value', aDurableObject));
-  failVal(() => durableMap.init('remotable object value', aRemotableObject));
-  failVal(() => durableMap.init('virtual store value', aVirtualStore));
+  failVal(() => durableMap.init('remotable object value', aRemotableObject),
+    'value is not durable: "[Alleged: what]" at slot 0 of "{\\n  body: getSlotVal(0,\\"Alleged: what\\"),\\n  slots: [\\n    \\"o+12\\",\\n  ],\\n}"',
+  );
+  failVal(() => durableMap.init('virtual store value', aVirtualStore),
+    'value is not durable: "[Alleged: mapStore]" at slot 0 of "{\\n  body: getSlotVal(0,\\"Alleged: mapStore\\"),\\n  slots: [\\n    \\"o+2/1\\",\\n  ],\\n}"',
+  );
   passVal(() => durableMap.init('durable store value', aDurableStore));
-  failVal(() => durableMap.init('object full of virtual stuff', anObjectFullOfVirtualStuff));
-  failVal(() => durableMap.init('array full of virtual stuff', anArrayFullOfVirtualStuff));
+  failVal(() => durableMap.init('object full of virtual stuff', anObjectFullOfVirtualStuff),
+    /value is not durable: .* at slot 2 of /,
+  );
+  failVal(() => durableMap.init('array full of virtual stuff', anArrayFullOfVirtualStuff),
+    /value is not durable: .* at slot 0 of /,
+  );
   passVal(() => durableMap.init('object full of durable stuff', anObjectFullOfDurableStuff));
   passVal(() => durableMap.init('array full of durable stuff', anArrayFullOfDurableStuff));
   passVal(() => durableMap.init('durable kind', durableHolderKind));
 
   passVal(() => durableMap.init('changeme', 47));
   passVal(() => durableMap.set('changeme', aString));
-  failVal(() => durableMap.set('changeme', aVirtualObject));
+  failVal(() => durableMap.set('changeme', aVirtualObject),
+    /value is not durable: "\[Alleged: holder]" at slot 0 of /,
+  );
   passVal(() => durableMap.set('changeme', aDurableObject));
-  failVal(() => durableMap.set('changeme', aRemotableObject));
-  failVal(() => durableMap.set('changeme', aVirtualStore));
+  failVal(() => durableMap.set('changeme', aRemotableObject),
+    /value is not durable: "\[Alleged: what]" at slot 0 of /,
+  );
+  failVal(() => durableMap.set('changeme', aVirtualStore),
+    /value is not durable: "\[Alleged: mapStore]" at slot 0 of /,
+  );
   passVal(() => durableMap.set('changeme', aDurableStore));
-  failVal(() => durableMap.set('changeme', anObjectFullOfVirtualStuff));
-  failVal(() => durableMap.set('changeme', anArrayFullOfVirtualStuff));
+  failVal(() => durableMap.set('changeme', anObjectFullOfVirtualStuff),
+    /value is not durable: .* at slot 2 of /,
+  );
+  failVal(() => durableMap.set('changeme', anArrayFullOfVirtualStuff),
+    /value is not durable: .* at slot 0 of /,
+  );
   passVal(() => durableMap.set('changeme', anObjectFullOfDurableStuff));
   passVal(() => durableMap.set('changeme', anArrayFullOfDurableStuff));
   passVal(() => durableMap.set('changeme', durableHolderKind));
@@ -180,10 +206,10 @@ test('durability checks', t => {
   passKey(() => virtualSet.add(durableHolderKind));
 
   passKey(() => durableSet.add(aString));
-  failKey(() => durableSet.add(aVirtualObject));
+  failKey(() => durableSet.add(aVirtualObject), /Alleged: holder/);
   passKey(() => durableSet.add(aDurableObject));
-  failKey(() => durableSet.add(aRemotableObject));
-  failKey(() => durableSet.add(aVirtualStore));
+  failKey(() => durableSet.add(aRemotableObject), /Alleged: what/);
+  failKey(() => durableSet.add(aVirtualStore), /Alleged: mapStore/);
   passKey(() => durableSet.add(aDurableStore));
   passKey(() => durableSet.add(durableHolderKind));
 
@@ -254,7 +280,9 @@ test('durability checks', t => {
   passVal(() => virtualMap.init('non-scalar key', aNonScalarKey));
   passVal(() => virtualMap.init('non-scalar non-key', aNonScalarNonKey));
 
-  failVal(() => durableMap.init('promise', aPassablePromise));
+  failVal(() => durableMap.init('promise', aPassablePromise),
+    '"[undefined]" must be a string',
+  );
   passVal(() => durableMap.init('error', aPassableError));
   passVal(() => durableMap.init('non-scalar key', aNonScalarKey));
   passVal(() => durableMap.init('non-scalar non-key', aNonScalarNonKey));
