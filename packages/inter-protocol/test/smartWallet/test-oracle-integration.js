@@ -281,7 +281,7 @@ test.serial('errors', async t => {
       error:
         'Error: In "pushPrice" method of (OracleKit oracle): arg 0: unitPrice: number 1 - Must be a bigint',
       // trivially satisfied because the Want is empty
-      numWantsSatisfied: 1,
+      numWantsSatisfied: Infinity,
     },
   );
   await eventLoopIteration();
@@ -294,7 +294,7 @@ test.serial('errors', async t => {
     }),
     {
       error: undefined,
-      numWantsSatisfied: 1,
+      numWantsSatisfied: Infinity,
     },
   );
   await eventLoopIteration();
@@ -307,7 +307,7 @@ test.serial('errors', async t => {
     }),
     {
       error: 'Error: cannot report on previous rounds',
-      numWantsSatisfied: 1,
+      numWantsSatisfied: Infinity,
     },
   );
 });
