@@ -846,34 +846,6 @@ test('price falls precipitously', async t => {
   t.deepEqual(await E(vault).getCollateralAmount(), aeth.makeEmpty());
 });
 
-test('vaultFactory display collateral', async t => {
-  const { aeth, run, rates: defaultRates } = t.context;
-  t.context.aethInitialLiquidity = aeth.make(900n);
-  t.context.rates = harden({
-    ...defaultRates,
-    loanFee: makeRatio(530n, run.brand, BASIS_POINTS),
-  });
-
-  const services = await setupServices(
-    t,
-    [500n, 1500n],
-    aeth.make(90n),
-    buildManualTimer(t.log),
-    undefined,
-    500n,
-  );
-
-  const { vaultFactory } = services.vaultFactory;
-  const collaterals = await E(vaultFactory).getCollaterals();
-  t.deepEqual(collaterals[0], {
-    brand: aeth.brand,
-    liquidationMargin: makeRatio(105n, run.brand),
-    stabilityFee: makeRatio(530n, run.brand, BASIS_POINTS),
-    marketPrice: makeRatio(5n, run.brand, 1n, aeth.brand),
-    interestRate: makeRatio(100n, run.brand, 10000n, run.brand),
-  });
-});
-
 test('interest on multiple vaults', async t => {
   const { zoe, aeth, run, rates: defaultRates } = t.context;
   const rates = {

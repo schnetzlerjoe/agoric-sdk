@@ -7,12 +7,7 @@ import '@agoric/governance/src/exported.js';
 import { E } from '@endo/eventual-send';
 
 import { fit, keyEQ, M, makeScalarMap } from '@agoric/store';
-import {
-  assertProposalShape,
-  getAmountIn,
-  getAmountOut,
-} from '@agoric/zoe/src/contractSupport/index.js';
-import { makeRatioFromAmounts } from '@agoric/zoe/src/contractSupport/ratio.js';
+import { assertProposalShape } from '@agoric/zoe/src/contractSupport/index.js';
 import { Far } from '@endo/marshal';
 
 import { AmountMath } from '@agoric/ertp';
@@ -240,31 +235,6 @@ const makeVaultInvitation = ({ state }) => {
 };
 
 /**
- * @deprecated get `collaterals` list from metrics
- * @param {MethodContext} context
- */
-const getCollaterals = async ({ state }) => {
-  const { collateralTypes } = state;
-  // should be collateralTypes.map((vm, brand) => ({
-  return harden(
-    Promise.all(
-      [...collateralTypes.entries()].map(async ([brand, vm]) => {
-        const priceQuote = await vm.getCollateralQuote();
-        return {
-          brand,
-          interestRate: vm.getGovernedParams().getInterestRate(),
-          liquidationMargin: vm.getGovernedParams().getLiquidationMargin(),
-          stabilityFee: vm.getGovernedParams().getLoanFee(),
-          marketPrice: makeRatioFromAmounts(
-            getAmountOut(priceQuote),
-            getAmountIn(priceQuote),
-          ),
-        };
-      }),
-    ),
-  );
-};
-/**
  * @param {Ephemera['directorParamManager']} directorParamManager
  */
 const getLiquidationConfig = directorParamManager => ({
@@ -432,7 +402,6 @@ const machineBehavior = {
     facets.machine.updateMetrics();
     return vm;
   },
-  getCollaterals,
   /** @param {MethodContext} context */
   makeCollectFeesInvitation: ({ state }) => {
     const { debtMint, zcf } = ephemera;
@@ -502,7 +471,6 @@ const publicBehavior = {
   makeLoanInvitation: makeVaultInvitation,
   /** @deprecated use getCollateralManager and then makeVaultInvitation instead */
   makeVaultInvitation,
-  getCollaterals,
   getRunIssuer: () => ephemera.debtMint.getIssuerRecord().issuer,
   /**
    * subscription for the paramManager for a particular vaultManager
