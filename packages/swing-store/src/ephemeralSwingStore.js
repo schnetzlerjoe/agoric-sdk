@@ -38,34 +38,6 @@ export function initEphemeralSwingStore() {
   }
 
   /**
-   * Generator function that returns an iterator over all the keys within a
-   * given range, in lexicographical order.
-   *
-   * Note that this can be slow as it's only intended for use in debugging and
-   * test result verification.
-   *
-   * @param {string} start  Start of the key range of interest (inclusive).  An empty
-   *    string indicates a range from the beginning of the key set.
-   * @param {string} end  End of the key range of interest (exclusive).  An empty string
-   *    indicates a range through the end of the key set.
-   *
-   * @yields {string} an iterator for the keys from start <= key < end
-   *
-   * @throws if either parameter is not a string.
-   */
-  function* getKeys(start, end) {
-    assert.typeof(start, 'string');
-    assert.typeof(end, 'string');
-
-    const keys = Array.from(state.keys()).sort();
-    for (const k of keys) {
-      if ((start === '' || start <= k) && (end === '' || k < end)) {
-        yield k;
-      }
-    }
-  }
-
-  /**
    * Obtain the value stored for a given key.
    *
    * @param {string} key  The key whose value is sought.
@@ -78,6 +50,50 @@ export function initEphemeralSwingStore() {
   function get(key) {
     assert.typeof(key, 'string');
     return state.get(key);
+  }
+
+  /**
+   * getNext enables callers to iterate over all keys within a given
+   * range. To build an iterator of all keys from start (inclusive) to
+   * end (exclusive), do:
+   * function* iterate(start, end) {
+   *   if (kvStore.has(start)) {
+   *     yield start;
+   *   }
+   *   let prev = start;
+   *   while (true) {
+   *     let next = kvStore.getNext(prev, end);
+   *     if (next === undefined) {
+   *       break;
+   *     }
+   *     yield next;
+   *     prev = next;
+   *   }
+   * }
+   *
+   * @param {string} previousKey  The key returned will always be later than this one.
+   * @param {string} [maxKey = undefined] The key returned will always be earlier than this one (if provided).
+   *
+   * @returns {string | undefined} a key string, or undefined if no key meets the criteria
+   *
+   * @throws if previousKey is not a string, or if maxKey is neither a string nor undefined
+   */
+  function getNext(previousKey, maxKey = undefined) {
+    assert.typeof(previousKey, 'string');
+    if (maxKey) {
+      assert.typeof(maxKey, 'string');
+    }
+
+    const keys = Array.from(state.keys()).sort();
+    for (const k of keys) {
+      if (k > previousKey) {
+        if (maxKey && k >= maxKey) {
+          return undefined;
+        }
+        return k;
+      }
+    }
+    return undefined;
   }
 
   /**
@@ -110,8 +126,8 @@ export function initEphemeralSwingStore() {
 
   const kvStore = {
     has,
-    getKeys,
     get,
+    getNext,
     set,
     delete: del,
   };
@@ -263,9 +279,18 @@ export function getAllState(swingStore) {
   const { kvStore, streamStore } = swingStore;
   /** @type { Record<string, string> } */
   const kvStuff = {};
-  for (const key of Array.from(kvStore.getKeys('', ''))) {
-    // @ts-expect-error get(key) of key from getKeys() is not undefined
-    kvStuff[key] = kvStore.get(key);
+  let prev = '';
+  for (;;) {
+    const next = kvStore.getNext(prev);
+    if (next !== undefined) {
+      const value = kvStore.get(next);
+      // TODO: typechecker won't let me kvStuff[next]=kvStore.get(next)
+      assert(value !== undefined);
+      kvStuff[next] = value;
+      prev = next;
+    } else {
+      break;
+    }
   }
   const streamStuff = new Map();
   const peek = streamPeek.get(streamStore);

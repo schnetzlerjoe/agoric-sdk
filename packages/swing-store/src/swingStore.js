@@ -37,8 +37,8 @@ export function makeSnapStoreIO() {
 /**
  * @typedef {{
  *   has: (key: string) => boolean,
- *   getKeys: (start: string, end: string) => IterableIterator<string>,
  *   get: (key: string) => string | undefined,
+ *   getNext: (previousKey: string, maxKey?: string) => string | undefined,
  *   set: (key: string, value: string) => void,
  *   delete: (key: string) => void,
  * }} KVStore
@@ -222,35 +222,53 @@ function makeSwingStore(dirPath, forceReset, options) {
   }
 
   /**
-   * Generator function that returns an iterator over all the keys within a
-   * given range.  Note that this can be slow as it's only intended for use in
-   * debugging.
+   * getNext enables callers to iterate over all keys within a given
+   * range. To build an iterator of all keys from start (inclusive) to
+   * end (exclusive), do:
+   * function* iterate(start, end) {
+   *   if (kvStore.has(start)) {
+   *     yield start;
+   *   }
+   *   let prev = start;
+   *   while (true) {
+   *     let next = kvStore.getNext(prev, end);
+   *     if (next === undefined) {
+   *       break;
+   *     }
+   *     yield next;
+   *     prev = next;
+   *   }
+   * }
    *
-   * @param {string} start  Start of the key range of interest (inclusive).  An empty
-   *    string indicates a range from the beginning of the key set.
-   * @param {string} end  End of the key range of interest (exclusive).  An empty string
-   *    indicates a range through the end of the key set.
+   * @param {string} previousKey  The key returned will always be later than this one.
+   * @param {string} [maxKey=undefined] The key returned will always be earlier than this one (if provided).
    *
-   * @yields {string} an iterator for the keys from start <= key < end
+   * @returns {string | undefined} a key string, or undefined if no key meets the criteria
    *
-   * @throws if either parameter is not a string.
+   * @throws if previousKey is not a string, or if maxKey is neither a string nor undefined
    */
-  function* getKeys(start, end) {
-    assert.typeof(start, 'string');
-    assert.typeof(end, 'string');
+  function getNext(previousKey, maxKey = undefined) {
+    assert.typeof(previousKey, 'string');
+    if (maxKey) {
+      assert.typeof(maxKey, 'string');
+    }
 
     /** @type {import("lmdb").RangeOptions} */
-    const rangeOptions = {};
-    if (start) {
-      rangeOptions.start = start;
-    }
-    if (end) {
-      rangeOptions.end = end;
-    }
-
+    const rangeOptions = { start: previousKey, end: maxKey };
     const keys = ensureTxn().getKeys(rangeOptions);
-
-    yield* keys;
+    const iter = keys[Symbol.iterator]();
+    // this gets us previousKey <= key < maxKey
+    const first = iter.next();
+    if (first.done) {
+      // no keys in range
+      return undefined;
+    }
+    if (first.value !== previousKey) {
+      return first.value;
+    }
+    // else, 'previousKey' existed, and we want the next one
+    const second = iter.next();
+    return second.value; // might be undefined
   }
 
   /**
@@ -305,8 +323,8 @@ function makeSwingStore(dirPath, forceReset, options) {
 
   const kvStore = {
     has,
-    getKeys,
     get,
+    getNext,
     set,
     delete: del,
   };

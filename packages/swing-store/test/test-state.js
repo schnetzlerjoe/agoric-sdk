@@ -30,6 +30,21 @@ const tmpDir = prefix =>
     });
   });
 
+function* iterate(kvStore, start, end) {
+  if (kvStore.has(start)) {
+    yield start;
+  }
+  let prev = start;
+  while (true) {
+    const next = kvStore.getNext(prev, end);
+    if (next === undefined) {
+      break;
+    }
+    yield next;
+    prev = next;
+  }
+}
+
 function testKVStore(t, store) {
   const kvStore = store.kvStore;
   t.falsy(kvStore.has('missing'));
@@ -42,8 +57,8 @@ function testKVStore(t, store) {
   kvStore.set('foo2', 'f2');
   kvStore.set('foo1', 'f1');
   kvStore.set('foo3', 'f3');
-  t.deepEqual(Array.from(kvStore.getKeys('foo1', 'foo3')), ['foo1', 'foo2']);
-  t.deepEqual(Array.from(kvStore.getKeys('foo1', 'foo4')), [
+  t.deepEqual(Array.from(iterate(kvStore, 'foo1', 'foo3')), ['foo1', 'foo2']);
+  t.deepEqual(Array.from(iterate(kvStore, 'foo1', 'foo4')), [
     'foo1',
     'foo2',
     'foo3',
@@ -52,7 +67,7 @@ function testKVStore(t, store) {
   kvStore.delete('foo2');
   t.falsy(kvStore.has('foo2'));
   t.is(kvStore.get('foo2'), undefined);
-  t.deepEqual(Array.from(kvStore.getKeys('foo1', 'foo4')), ['foo1', 'foo3']);
+  t.deepEqual(Array.from(iterate(kvStore, 'foo1', 'foo4')), ['foo1', 'foo3']);
 
   const reference = {
     kvStuff: {
