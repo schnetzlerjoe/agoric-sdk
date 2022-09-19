@@ -54,7 +54,7 @@ function copyState(schedState) {
  *
  * @typedef {object} IndexedHandler
  * @property {number} [index]
- * @property {Waker} handler
+ * @property {Waker} waker
  *
  * @typedef {object} Waker
  * @property {(now: bigint) => void} wake
@@ -157,7 +157,7 @@ function makeTimerMap(state = undefined) {
     while (i < schedule.length) {
       const { time, handlers } = schedule[i];
       if (handlers.length === 1) {
-        if (handlers[0].handler === targetHandler) {
+        if (handlers[0] === targetHandler) {
           schedule.splice(i, 1);
           droppedTimes.push(time);
         } else {
@@ -165,7 +165,7 @@ function makeTimerMap(state = undefined) {
         }
       } else {
         // Nothing prevents a particular handler from appearing more than once
-        for (const { handler } of handlers) {
+        for (const handler of handlers) {
           if (handler === targetHandler && handlers.indexOf(handler) !== -1) {
             handlers.splice(handlers.indexOf(handler), 1);
             droppedTimes.push(time);
