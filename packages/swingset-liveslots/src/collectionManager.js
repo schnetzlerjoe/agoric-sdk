@@ -15,6 +15,8 @@ import {
   M,
   makeCopySet,
   makeCopyMap,
+  mustCompress,
+  decompress,
 } from '@agoric/store';
 import { Far, passStyleOf } from '@endo/marshal';
 import { makeBaseRef, parseVatSlot } from './parseVatSlots.js';
@@ -209,18 +211,17 @@ export function makeCollectionManager(
     const invalidValueTypeMsg = `invalid value type for collection ${q(label)}`;
 
     const serializeValue = value => {
-      if (valueShape !== undefined) {
-        mustMatch(value, valueShape, invalidValueTypeMsg);
+      if (valueShape === undefined) {
+        return serialize(value);
       }
-      return serialize(value);
+      return serialize(mustCompress(value, valueShape, invalidValueTypeMsg));
     };
 
     const unserializeValue = data => {
-      const value = unserialize(data);
-      if (valueShape !== undefined) {
-        mustMatch(value, valueShape, invalidValueTypeMsg);
+      if (valueShape === undefined) {
+        return unserialize(data);
       }
-      return value;
+      return decompress(unserialize(data), valueShape);
     };
 
     function prefix(dbEntryKey) {
