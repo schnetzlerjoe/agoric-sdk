@@ -1,7 +1,7 @@
 // @ts-check
 import { test } from '@agoric/swingset-vat/tools/prepare-test-env-ava.js';
 
-import { Far } from '@endo/far';
+import { E, Far } from '@endo/far';
 import { makeBoard } from '../src/lib-board.js';
 
 test('makeBoard', async t => {
@@ -116,4 +116,15 @@ test(`getReadonlyMarshaller doesn't leak unpublished objects`, async t => {
   const board = makeBoard();
   const marshaller = board.getReadonlyMarshaller();
   await testBoardMarshaller(t, board, marshaller, false);
+});
+
+test('serialize and stringify to save a round trip', async t => {
+  const board = makeBoard();
+  const marshaller = board.getPublishingMarshaller();
+  const obj2 = Far('obj2', {});
+  const s = await E(marshaller).serializeAndStringify(obj2);
+  t.is(
+    s,
+    '{"body":"{\\"@qclass\\":\\"slot\\",\\"iface\\":\\"Alleged: obj2\\",\\"index\\":0}","slots":["board0371"]}',
+  );
 });

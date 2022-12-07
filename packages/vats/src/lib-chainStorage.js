@@ -64,8 +64,9 @@ export function makeChainStorageRoot(
         const mergedOptions = { sequence, ...childNodeOptions };
         return makeChainStorageNode(`${path}.${name}`, mergedOptions);
       },
-      /** @type {(value: string) => void} */
-      setValue(value) {
+      /** @type {(value: string) => Promise<void>} */
+      setValue: async valueP => {
+        const value = await valueP;
         assert.typeof(value, 'string');
         handleStorageMessage({
           key: path,

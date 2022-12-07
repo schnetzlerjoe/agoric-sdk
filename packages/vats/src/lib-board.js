@@ -59,28 +59,39 @@ function makeBoard(
     return Far(`${ifaceInaccessiblePrefix}${iface}`, {});
   };
 
-  // Create a marshaller that just looks up objects, not publish them.
-  const readonlyMarshaller = Far('board readonly marshaller', {
-    ...makeMarshal(val => {
-      if (!valToId.has(val)) {
-        // Unpublished value.
-        return null;
-      }
-
-      // Published value.
-      return valToId.get(val);
-    }, slotToVal),
+  const withStringify = m => ({
+    ...m,
+    serializeAndStringify: v => JSON.stringify(m.serialize(v)),
   });
+
+  // Create a marshaller that just looks up objects, not publish them.
+  const readonlyMarshaller = Far(
+    'board readonly marshaller',
+    withStringify({
+      ...makeMarshal(val => {
+        if (!valToId.has(val)) {
+          // Unpublished value.
+          return null;
+        }
+
+        // Published value.
+        return valToId.get(val);
+      }, slotToVal),
+    }),
+  );
 
   // Create a marshaller useful for publishing all ocaps.
-  const publishingMarshaller = Far('board publishing marshaller', {
-    ...makeMarshal(
-      // Always put the value in the board.
-      // eslint-disable-next-line no-use-before-define
-      val => board.getId(val),
-      slotToVal,
-    ),
-  });
+  const publishingMarshaller = Far(
+    'board publishing marshaller',
+    withStringify({
+      ...makeMarshal(
+        // Always put the value in the board.
+        // eslint-disable-next-line no-use-before-define
+        val => board.getId(val),
+        slotToVal,
+      ),
+    }),
+  );
 
   const board = Far('Board', {
     getPublishingMarshaller: () => publishingMarshaller,

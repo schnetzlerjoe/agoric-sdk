@@ -42,12 +42,7 @@ export const makeStoredSubscriber = (subscriber, storageNode, marshaller) => {
   assert(subscriber && storageNode && marshaller, 'missing argument');
 
   const storeValue = value =>
-    E(marshaller)
-      .serialize(value)
-      .then(serialized => {
-        const encoded = JSON.stringify(serialized);
-        return E(storageNode).setValue(encoded);
-      });
+    E(storageNode).setValue(E(marshaller).serializeAndStringify(value));
 
   // Start publishing the source.
   forEachPublicationRecord(subscriber, storeValue).catch(err => {
