@@ -44,6 +44,7 @@ const installKeyGroups = {
       '../src/interchainPool.js',
       '../bundles/bundle-interchainPool.js',
     ],
+    auction: ['../src/auction/auctioneer.js', '../bundles/bundle-auction.js'],
     vaultFactory: [
       '../src/vaultFactory/vaultFactory.js',
       '../bundles/bundle-vaultFactory.js',

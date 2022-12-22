@@ -163,6 +163,7 @@ harden(makeVaultDirectorParamManager);
  *   liquidationTerms: import('./liquidation.js').LiquidationTerms,
  *   ammPublicFacet: XYKAMMPublicFacet,
  *   shortfallInvitationAmount: Amount,
+ *   auctionPublicFacet: import('../auction/auctioneer.js').AuctioneerPublicFacet,
  *   endorsedUi?: string,
  * }} opts
  */
@@ -171,6 +172,7 @@ export const makeGovernedTerms = (
   {
     ammPublicFacet,
     bootstrapPaymentValue,
+    auctionPublicFacet,
     electorateInvitationAmount,
     liquidationInstall,
     liquidationTerms,
@@ -200,6 +202,7 @@ export const makeGovernedTerms = (
   return harden({
     ammPublicFacet,
     priceAuthority,
+    auctionPublicFacet,
     loanTimingParams,
     reservePublicFacet,
     timerService: timer,
