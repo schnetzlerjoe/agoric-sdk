@@ -12,6 +12,7 @@
   },
   "include": [
     "src/**/*.js",
+    "*.js",
     "test/**/*.js",
     "tools/**/*.js",
   ],
