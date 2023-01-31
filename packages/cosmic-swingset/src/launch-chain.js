@@ -30,7 +30,7 @@ import {
 
 import {
   BeansPerBlockComputeLimit,
-  BeansPerIntraBlockComputeLimit,
+  BeansPerInterBlockComputeLimit,
   BeansPerVatCreation,
   BeansPerXsnapComputron,
   QueueInbound,
@@ -693,7 +693,7 @@ export async function launch({
         });
       });
 
-    const computeLimit = params.beansPerUnit[BeansPerIntraBlockComputeLimit];
+    const computeLimit = params.beansPerUnit[BeansPerInterBlockComputeLimit];
 
     if (!(computeLimit > 0n)) {
       return;
