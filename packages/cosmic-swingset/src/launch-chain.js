@@ -54,7 +54,7 @@ async function buildSwingset(
   vatconfig,
   argv,
   env,
-  { debugName = undefined, slogCallbacks, slogSender },
+  { debugName = undefined, slogCallbacks, slogSender, recordChainActionWrap },
 ) {
   // FIXME: Find a better way to propagate the role.
   process.env.ROLE = argv.ROLE;
@@ -66,9 +66,17 @@ async function buildSwingset(
     config = loadBasedir(vatconfig);
   }
 
-  const mbs = buildMailboxStateMap(mailboxStorage);
+  const rawMailboxStateMap = buildMailboxStateMap(mailboxStorage);
+  const mailboxStateMap = {
+    add: recordChainActionWrap(rawMailboxStateMap.add, 'mailbox-add'),
+    remove: recordChainActionWrap(rawMailboxStateMap.remove, 'mailbox-remove'),
+    setAcknum: recordChainActionWrap(
+      rawMailboxStateMap.setAcknum,
+      'mailbox-set-acknum',
+    ),
+  };
   const timer = buildTimer();
-  const mb = buildMailbox(mbs);
+  const mb = buildMailbox(mailboxStateMap);
   config.devices = {
     mailbox: {
       sourceSpec: mb.srcPath,
@@ -84,7 +92,9 @@ async function buildSwingset(
 
   let bridgeInbound;
   if (bridgeOutbound) {
-    const bd = buildBridge(bridgeOutbound);
+    const bd = buildBridge(
+      recordChainActionWrap(bridgeOutbound, 'bridge-outbound'),
+    );
     config.devices.bridge = {
       sourceSpec: bd.srcPath,
     };
@@ -216,6 +226,7 @@ export async function launch({
   metricsProvider = makeDefaultMeterProvider(),
   slogSender,
   swingStoreTraceFile,
+  chainTranscript,
   keepSnapshots,
   afterCommitCallback = async () => ({}),
 }) {
@@ -256,7 +267,35 @@ export async function launch({
     metricMeter,
   });
 
+  // Helpers to record swingset activity that results in a chainSend.
+  // The following chain callbacks trigger chainSend:
+  // - mailboxStorage
+  // - installationPublisher
+  // - setActivityhash
+  // - bridgeOutbound
+  // - actionQueue
+  //
+  // The first 3 are sinks only. bridgeOutbound returns a result (for now)
+  // The actionQueue is used as a synchronous iterator drained at once
+  const recordChainActionWrap =
+    (fn, type) =>
+    (...args) => {
+      const result = fn(...args);
+      void chainTranscript?.write({ type, args, result });
+      return result;
+    };
+
+  if (setActivityhash) {
+    setActivityhash = recordChainActionWrap(
+      setActivityhash,
+      'set-activity-hash',
+    );
+  }
+
   console.debug(`buildSwingset`);
+  if (!swingsetIsInitialized(hostStorage)) {
+    await chainTranscript?.write({ type: 'initialize', vatconfig, argv });
+  }
   const { controller, mb, bridgeInbound, timer } = await buildSwingset(
     mailboxStorage,
     bridgeOutbound,
@@ -268,6 +307,7 @@ export async function launch({
       debugName,
       slogCallbacks,
       slogSender,
+      recordChainActionWrap,
     },
   );
 
@@ -398,7 +438,22 @@ export async function launch({
       installationPublisher === undefined &&
       makeInstallationPublisher !== undefined
     ) {
-      installationPublisher = makeInstallationPublisher();
+      /** @type {Publisher<unknown>} */
+      const publisher = makeInstallationPublisher();
+      installationPublisher = {
+        publish: recordChainActionWrap(
+          publisher.publish,
+          'installation-publisher-publish',
+        ),
+        finish: recordChainActionWrap(
+          publisher.finish,
+          'installation-publisher-finish',
+        ),
+        fail: recordChainActionWrap(
+          publisher.fail,
+          'installation-publisher-fail',
+        ),
+      };
     }
   }
 
@@ -412,6 +467,10 @@ export async function launch({
 
   async function performAction(action, inboundNum) {
     // blockManagerConsole.error('Performing action', action);
+    await chainTranscript?.write({
+      type: 'perform-action',
+      inboundNum,
+    });
     let p;
     switch (action.type) {
       case ActionType.DELIVER_INBOUND: {
@@ -533,6 +592,14 @@ export async function launch({
     let actionNum = 0;
     for (const action of newActions) {
       const inboundNum = `${blockHeight}-${actionNum}`;
+      if (chainTranscript) {
+        // eslint-disable-next-line no-await-in-loop
+        await chainTranscript.write({
+          type: 'inbound-action',
+          inboundNum,
+          action,
+        });
+      }
       inboundQueue.push({ action, inboundNum });
       actionNum += 1;
       inboundQueueMetrics.incStat();
@@ -662,6 +729,10 @@ export async function launch({
         }
         const blockHeight = 0;
         const runNum = 0;
+        await chainTranscript?.write({
+          type: 'bootstrap-block',
+          blockTime,
+        });
         controller.writeSlogObject({
           type: 'cosmic-swingset-bootstrap-block-start',
           blockTime,
@@ -699,6 +770,11 @@ export async function launch({
           blockHeight,
           blockTime,
         });
+        await chainTranscript?.write({
+          type: 'commit-block',
+          blockHeight,
+          blockTime,
+        });
 
         // Save the kernel's computed state just before the chain commits.
         const start2 = Date.now();
@@ -731,6 +807,13 @@ export async function launch({
         if (blockNeedsExecution(blockHeight)) {
           // We are not reevaluating, so compute a new queueAllowed
           updateQueueAllowed(blockHeight, blockTime, blockParams);
+          await chainTranscript?.write({
+            type: 'begin-block',
+            blockHeight,
+            blockTime,
+            blockParams,
+            queueAllowed: savedQueueAllowed,
+          });
         }
 
         controller.writeSlogObject({
@@ -774,6 +857,12 @@ export async function launch({
           // END_BLOCK, but still reentrancy-protected.
 
           provideInstallationPublisher();
+
+          await chainTranscript?.write({
+            type: 'end-block',
+            blockHeight,
+            blockTime,
+          });
 
           await processAction(action.type, async () =>
             endBlock(
