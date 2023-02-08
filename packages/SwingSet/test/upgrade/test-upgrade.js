@@ -481,7 +481,7 @@ test('failed upgrade - explode', async t => {
     },
   };
 
-  const kernelStorage = initSwingStore().kernelStorage;
+  const { kernelStorage } = initSwingStore();
   await initializeSwingset(config, [], kernelStorage);
   const c = await makeSwingsetController(kernelStorage);
   c.pinVatRoot('bootstrap');
