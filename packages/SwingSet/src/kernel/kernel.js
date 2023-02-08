@@ -886,6 +886,14 @@ export default function buildKernel(
     // execute it as if it were a syscall. (maybe distinguish between
     // reachable/recognizable exports, abandon the reachable, retire
     // the recognizable) #6696
+    const abandonment = Array.from(vatKeeper.getNonDurableObjectExports());
+    const abandonVSO = ['abandonExports', abandonment];
+    // TODO: now translate and execute abandonVSO as if it were a
+    // syscall. This requires access to the vat syscall handler (the
+    // one created by buildVatSyscallHandler), which is currently
+    // buried inside the vat loader, and needs to be dug out somehow.
+    // TODO: maybe distinguish between reachable/recognizable exports,
+    // abandon the reachable, retire the recognizable
 
     // cleanup done, now we stop the worker, delete the transcript and
     // any snapshot

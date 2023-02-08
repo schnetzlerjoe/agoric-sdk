@@ -15,6 +15,19 @@ export function* enumeratePrefixedKeys(kvStore, prefix) {
   }
 }
 
+export function* keysInRange(kvStore, preExclusive, postExclusive) {
+  // return an iterator of all existing keys such that preExclusive <
+  // key < postExclusive, in lexicographic order
+  let key = preExclusive;
+  for (;;) {
+    key = kvStore.getNextKey(key);
+    if (!key || key >= postExclusive) {
+      break;
+    }
+    yield key;
+  }
+}
+
 // NOTE: awkward naming: the thing that returns a stream of keys is named
 // "enumerate..." while the thing that returns a stream of values is named
 // "get..."

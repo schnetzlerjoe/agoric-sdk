@@ -52,87 +52,6 @@ function rejectAllPromises({ deciderVPIDs, syscall, disconnectObjectCapData }) {
   }
 }
 
-function identifyExportedRemotables(
-  vrefSet,
-  { exportedRemotables, valToSlot },
-) {
-  // Find all exported "Remotables": precious in-RAM objects declared
-  // with Far and sent as message argument or promise resolution.
-  // These are all doomed, except for the root object (which the new
-  // version will rebind). We'll pretend the kernel drops these in a
-  // minute.
-
-  for (const r of exportedRemotables) {
-    const vref = valToSlot.get(r);
-    if (vref === rootSlot) {
-      // We know the new version can/will reattach a new root
-      // object, so if the kernel is still watching it, don't
-      // abandon it. We don't simulate a dispatch.dropExports, to
-      // preserve any vdata that might be keyed by it. But we do
-      // drop it from RAM, so we can collect any Presences or
-      // Representatives the Remotable had captured.
-      exportedRemotables.delete(r);
-    } else {
-      vrefSet.add(vref);
-    }
-  }
-}
-
-function identifyExportedFacets(vrefSet, { syscall, vrm }) {
-  // Find all exported (non-durable) virtual object facets, which are
-  // doomed because merely-virtual objects don't survive upgrade. We
-  // walk the "export status" (vom.es.) portion of the DB to find the
-  // ones that are reachable ('r') by the kernel, ignoring the ones
-  // that are merely recognizable ('s'). We'll pretend the kernel
-  // drops these in a minute.
-
-  const prefix = 'vom.es.';
-  for (const key of enumerateKeysWithPrefix(syscall, prefix)) {
-    const value = syscall.vatstoreGet(key);
-    const baseRef = key.slice(prefix.length);
-    const parsed = parseVatSlot(baseRef);
-    assert(
-      (parsed.virtual || parsed.durable) && parsed.baseRef === baseRef,
-      baseRef,
-    );
-    if (!vrm.isDurableKind(parsed.id)) {
-      if (value.length === 1) {
-        // single-facet
-        if (value === 'r') {
-          const vref = baseRef;
-          vrefSet.add(vref);
-        }
-      } else {
-        // multi-facet
-        for (let i = 0; i < value.length; i += 1) {
-          if (value[i] === 'r') {
-            const vref = `${baseRef}:${i}`;
-            vrefSet.add(vref);
-          }
-        }
-      }
-    }
-  }
-}
-
-function abandonExports(vrefSet, tools) {
-  // Pretend the kernel dropped everything in the set. The Remotables
-  // will be removed from exportedRemotables. If the export was the
-  // only pillar keeping them alive, the objects will be deleted,
-  // decrefs will happen, and a bunch of stuff will be pushed onto
-  // possiblyDeadSet. The virtual objects will lose their export
-  // pillar, which may do the same.
-
-  const { dropExports, retireExports, syscall } = tools;
-  const abandonedVrefs = Array.from(vrefSet).sort();
-  dropExports(abandonedVrefs);
-  // also pretend the kernel retired them, so we retire them ourselves
-  retireExports(abandonedVrefs);
-
-  // Now that we think they're gone, abandon them so the kernel agrees
-  syscall.abandonExports(abandonedVrefs);
-}
-
 // eslint-disable-next-line no-unused-vars
 function finalizeEverything(tools) {
   const { slotToVal, addToPossiblyDeadSet, vreffedObjectRegistry } = tools;
@@ -304,16 +223,11 @@ export async function releaseOldState(tools) {
 
   rejectAllPromises(tools);
 
-  // The next step is to pretend that the kernel has dropped all
-  // non-durable exports: both the in-RAM Remotables and the on-disk
-  // virtual objects (but not the root object). This will trigger
-  // refcount decrements which may drop some virtuals from the DB. It
-  // might also drop some objects from RAM.
-
-  const abandonedVrefSet = new Set();
-  identifyExportedRemotables(abandonedVrefSet, tools);
-  identifyExportedFacets(abandonedVrefSet, tools);
-  abandonExports(abandonedVrefSet, tools);
+  // The kernel will abandon all non-durable exports once we're
+  // done. TODO: one drawback of having the kernel do this, instead of
+  // us (stopVat), is that we don't see any refcount decrements which
+  // might let us drop virtuals/durables from the DB, or objects from
+  // RAM which might then drop virtuals/durables from the DB.
 
   // bringOutYourDead remains to ensure that the LRU cache is flushed,
   // but the rest of this function has been disabled to improve stop-vat

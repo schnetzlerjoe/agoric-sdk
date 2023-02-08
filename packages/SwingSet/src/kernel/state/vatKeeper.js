@@ -11,7 +11,7 @@ import {
   parseReachableAndVatSlot,
   buildReachableAndVatSlot,
 } from './reachable.js';
-import { enumeratePrefixedKeys } from './storageHelper.js';
+import { enumeratePrefixedKeys, keysInRange } from './storageHelper.js';
 
 /**
  * @typedef { import('../../types-external.js').KVStore } KVStore
@@ -472,6 +472,33 @@ export function makeVatKeeper(
     }
   }
 
+  function getNonDurableObjectExports() {
+    // The vrefs for exported objects start with o+NN (ephemeral),
+    // o+vNN/stuff (virtual), or o+dNN/stuff (durable). We iterate
+    // through all the ephemeral and virtual entries, so the kernel
+    // can abandon them on behalf of the vat being upgraded. We are
+    // responsible for preserving (not reporting) o+0, since our
+    // upgrade process provides a new root object.
+
+    // In ASCII, "/" comes before digits, digits come before
+    // letters. So all o+NN will sort after `o+/` but before `o+:`.
+    // All o+dNN/stuff is durable, and we don't report those. All
+    // o+vNN/stuff is virtual, and will fall after `o+v` and before
+    // `o+v:`
+
+    const prefix = `${vatID}.c.`;
+    const [ephStart, ephEnd] = [`${prefix}o+/`, `${prefix}o+:`];
+    const [virtStart, virtEnd] = [`${prefix}o+v`, `${prefix}o+v:`];
+
+    for (const k of keysInRange(kvStore, ephStart, ephEnd)) {
+      const vref = k.slice(prefix.length);
+      if (vref !== 'o+0') {
+        yield vref;
+      }
+    }
+    yield from keysInRange(kvStore, virtStart, virtEnd);
+  }
+
   /**
    * Generator function to return the vat's transcript, one entry at a time.
    *
@@ -639,6 +666,7 @@ export function makeVatKeeper(
     hasCListEntry,
     deleteCListEntry,
     deleteCListEntriesForKernelSlots,
+    getNonDurableObjectExports,
     getTranscript,
     transcriptSnapshotStats,
     addToTranscript,
