@@ -23,10 +23,10 @@ func (k Querier) Data(c context.Context, req *types.QueryDataRequest) (*types.Qu
 	}
 	ctx := sdk.UnwrapSDKContext(c)
 
-	value := k.GetData(ctx, req.Path)
+	entry := k.GetData(ctx, req.Path)
 
 	return &types.QueryDataResponse{
-		Value: value,
+		Value: entry.Value(),
 	}, nil
 }
 

@@ -34,12 +34,12 @@ func NewQuerier(keeper Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier 
 
 // nolint: unparam
 func queryData(ctx sdk.Context, path string, req abci.RequestQuery, keeper Keeper, legacyQuerierCdc *codec.LegacyAmino) (res []byte, err error) {
-	value := keeper.GetData(ctx, path)
-	if value == "" {
+	entry := keeper.GetData(ctx, path)
+	if !entry.IsPresent() {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "could not get vstorage path")
 	}
 
-	bz, err2 := codec.MarshalJSONIndent(legacyQuerierCdc, types.Data{Value: value})
+	bz, err2 := codec.MarshalJSONIndent(legacyQuerierCdc, types.Data{Value: entry.Value()})
 	if err2 != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err2.Error())
 	}
