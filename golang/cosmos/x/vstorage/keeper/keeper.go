@@ -338,3 +338,7 @@ func (k Keeper) GetStoreName() string {
 func (k Keeper) GetDataPrefix() []byte {
 	return types.EncodedDataPrefix
 }
+
+func (k Keeper) GetNoDataValue() []byte {
+	return types.EncodedNoDataValue
+}
