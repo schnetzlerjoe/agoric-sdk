@@ -145,6 +145,30 @@ func (k Keeper) ImportStorage(ctx sdk.Context, entries []*types.DataEntry) {
 	}
 }
 
+func (k Keeper) MigrateNoDataPlaceholders(ctx sdk.Context) {
+	store := ctx.KVStore(k.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, nil)
+
+	// Copy empty keys first since cosmos stores do not support writing keys
+	// while an iterator is open over the domain
+	emptyKeys := []*([]byte){}
+	{
+		defer iterator.Close()
+		for ; iterator.Valid(); iterator.Next() {
+			rawValue := iterator.Value()
+			if bytes.Equal(rawValue, types.EncodedDataPrefix) {
+				key := iterator.Key()
+				emptyKeys = append(emptyKeys, &key)
+			}
+		}
+	}
+
+	for _, key := range emptyKeys {
+		store.Set(*key, types.EncodedNoDataValue)
+	}
+}
+
 func (k Keeper) EmitChange(ctx sdk.Context, change *ProposedChange) {
 	if change.NewValue == change.ValueFromLastBlock {
 		// No change.
