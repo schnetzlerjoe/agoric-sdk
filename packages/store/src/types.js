@@ -136,7 +136,16 @@
 
 /**
  * @template K
+ * @typedef {object} WeakSetStoreReadonlyView
+ * @property {(key: K) => boolean} has
+ * Check if a key exists. The key can be any JavaScript value, though the
+ * answer will always be false for keys that cannot be found in this store.
+ */
+
+/**
+ * @template K
  * @typedef {object} WeakSetStore
+ * Extends WeakSetStoreReadonlyView with mutation methods
  * @property {(key: K) => boolean} has
  * Check if a key exists. The key can be any JavaScript value, though the
  * answer will always be false for keys that cannot be found in this store.
@@ -152,7 +161,22 @@
 
 /**
  * @template K
+ * @typedef {object} SetStoreReadonlyView
+ * Extends WeakSetStoreReadonlyView with enumeration methods
+ * @property {(key: K) => boolean} has
+ * Check if a key exists. The key can be any JavaScript value, though the
+ * answer will always be false for keys that cannot be found in this store.
+ * @property {(keyPatt?: Pattern) => Iterable<K>} keys
+ * @property {(keyPatt?: Pattern) => Iterable<K>} values
+ * @property {(keyPatt?: Pattern) => CopySet<K>} snapshot
+ * @property {(keyPatt?: Pattern) => number} getSize
+ */
+
+/**
+ * @template K
  * @typedef {object} SetStore
+ * Extends union of WeakSetStore and SetStoreReadonlyView with mutating
+ * enumeration methods
  * @property {(key: K) => boolean} has
  * Check if a key exists. The key can be any JavaScript value, though the
  * answer will always be false for keys that cannot be found in this store.
@@ -173,7 +197,17 @@
 
 /**
  * @template K,V
+ * @typedef {object} WeakMapStoreReadonlyView
+ * @property {(key: K) => boolean} has
+ * Check if a key exists. The key can be any JavaScript value, though the
+ * answer will always be false for keys that cannot be found in this store.
+ * @property {(key: K) => V} get
+ */
+
+/**
+ * @template K,V
  * @typedef {object} WeakMapStore
+ * Extends WeakMapStoreReadonlyView with mutation methods
  * @property {(key: K) => boolean} has
  * Check if a key exists. The key can be any JavaScript value, though the
  * answer will always be false for keys that cannot be found in this store.
@@ -192,7 +226,28 @@
 
 /**
  * @template K,V
+ * @typedef {object} MapStoreReadonlyView
+ * Extends WeakSetStoreReadonlyView with enumeration methods
+ * @property {(key: K) => boolean} has
+ * Check if a key exists. The key can be any JavaScript value, though the
+ * answer will always be false for keys that cannot be found in this map
+ * @property {(key: K) => V} get
+ * Return a value for the key. Throws if not found.
+ * @property {(keyPatt?: Pattern, valuePatt?: Pattern) => Iterable<K>} keys
+ * @property {(keyPatt?: Pattern, valuePatt?: Pattern) => Iterable<V>} values
+ * @property {(
+ *   keyPatt?: Pattern,
+ *   valuePatt?: Pattern
+ * ) => Iterable<[K,V]>} entries
+ * @property {(keyPatt?: Pattern, valuePatt?: Pattern) => CopyMap<K,V>} snapshot
+ * @property {(keyPatt?: Pattern, valuePatt?: Pattern) => number} getSize
+ */
+
+/**
+ * @template K,V
  * @typedef {object} MapStore
+ * Extends union of WeakMapStore and MapStoreReadonlyView with mutating
+ * enumeration methods
  * @property {(key: K) => boolean} has
  * Check if a key exists. The key can be any JavaScript value, though the
  * answer will always be false for keys that cannot be found in this map
