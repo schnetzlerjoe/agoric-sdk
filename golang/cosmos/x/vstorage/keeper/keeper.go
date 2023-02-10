@@ -141,6 +141,27 @@ func (k Keeper) ImportStorage(ctx sdk.Context, entries []*types.DataEntry) {
 	}
 }
 
+func (k Keeper) MigrateNoDataPlaceholders(ctx sdk.Context) {
+	store := ctx.KVStore(k.storeKey)
+
+	iterator := sdk.KVStorePrefixIterator(store, nil)
+	emptyKeys := []*([]byte){}
+	{
+		defer iterator.Close()
+		for ; iterator.Valid(); iterator.Next() {
+			rawValue := iterator.Value()
+			if len(rawValue) == 1 && rawValue[0] == types.EncodedDataPrefix[0] {
+				key := iterator.Key()
+				emptyKeys = append(emptyKeys, &key)
+			}
+		}
+	}
+
+	for _, key := range emptyKeys {
+		store.Set(*key, types.EncodedNoDataValue)
+	}
+}
+
 func (k Keeper) EmitChange(ctx sdk.Context, change *ProposedChange) {
 	if change.NewValue == change.ValueFromLastBlock {
 		// No change.
