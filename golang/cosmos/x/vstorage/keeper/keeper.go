@@ -123,7 +123,7 @@ func (k Keeper) ExportStorage(ctx sdk.Context) []*types.DataEntry {
 		if len(rawValue) == 0 {
 			continue
 		}
-		if len(rawValue) == 1 && rawValue[0] == types.EncodedEmptyData[0] {
+		if len(rawValue) == 1 && rawValue[0] == types.EncodedNoDataValue[0] {
 			continue
 		}
 		value := string(bytes.TrimPrefix(rawValue, types.EncodedDataPrefix))
@@ -173,7 +173,7 @@ func (k Keeper) GetData(ctx sdk.Context, path string) types.StorageEntry {
 	if len(rawValue) == 0 {
 		return types.StorageEntry{path}
 	}
-	if len(rawValue) == 1 && rawValue[0] == types.EncodedEmptyData[0] {
+	if len(rawValue) == 1 && rawValue[0] == types.EncodedNoDataValue[0] {
 		return types.StorageEntry{path}
 	}
 	bz := bytes.TrimPrefix(rawValue, types.EncodedDataPrefix)
@@ -288,7 +288,7 @@ func (k Keeper) SetStorage(ctx sdk.Context, entry types.StorageEntry) {
 			// We have no children, can delete.
 			store.Delete(encodedKey)
 		} else {
-			store.Set(encodedKey, types.EncodedEmptyData)
+			store.Set(encodedKey, types.EncodedNoDataValue)
 		}
 	} else {
 		// Update the value.
@@ -316,7 +316,7 @@ func (k Keeper) SetStorage(ctx sdk.Context, entry types.StorageEntry) {
 				// The ancestor exists, implying all further ancestors exist, so we can break.
 				break
 			}
-			store.Set(types.PathToEncodedKey(ancestor), types.EncodedEmptyData)
+			store.Set(types.PathToEncodedKey(ancestor), types.EncodedNoDataValue)
 		}
 	}
 }
@@ -331,4 +331,8 @@ func (k Keeper) GetStoreName() string {
 
 func (k Keeper) GetDataPrefix() []byte {
 	return types.EncodedDataPrefix
+}
+
+func (k Keeper) GetNoDataValue() []byte {
+	return types.EncodedNoDataValue
 }
