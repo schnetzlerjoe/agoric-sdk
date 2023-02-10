@@ -15,15 +15,20 @@ import (
 // digits), separated by nul, followed by the path with dots replaced with nul.
 // So the path key for the empty path is `0\0`.
 //
-// - Store entries contain `\0`-prefixed data, (just `\0` if data is
+// - Store entries exist if and only if self or some descendant has an entry
+// with data.
+//
+// - Store entries with data contain `\0`-prefixed data, (just `\0` if data is
 // empty).
 //
-// - Store entries exist if and only if self or some descendant has a
-// non-empty data entry.
+// - Placeholder store entries contain a single `\255` byte. These are used to
+// indicate the entry does not have any data (which is different from empty
+// data). Placeholder entries are used when a descendent with data exists.
 var (
 	EncodedKeySeparator = []byte{0}
 	PathSeparator       = "."
 	EncodedDataPrefix   = []byte{0}
+	EncodedNoDataValue  = []byte{255}
 )
 
 // EncodedKeyToPath converts a byte slice key to a string path
