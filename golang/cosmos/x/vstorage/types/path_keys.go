@@ -24,7 +24,7 @@ var (
 	EncodedKeySeparator = []byte{0}
 	PathSeparator       = "."
 	EncodedDataPrefix   = []byte{0}
-	EncodedEmptyData    = []byte{255}
+	EncodedNoDataValue  = []byte{255}
 )
 
 // EncodedKeyToPath converts a byte slice key to a string path

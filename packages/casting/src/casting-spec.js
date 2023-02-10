@@ -18,6 +18,7 @@ const swingsetPathToCastingSpec = storagePath =>
 const KEY_SEPARATOR_BYTE = 0;
 const PATH_SEPARATOR_BYTE = '.'.charCodeAt(0);
 const DATA_PREFIX_BYTES = new Uint8Array([0]);
+const NO_DATA_VALUE = new Uint8Array([255]);
 
 /**
  * @param {string} storagePath
@@ -33,6 +34,7 @@ const vstoragePathToCastingSpec = (storagePath, storeName = 'vstorage') => {
       b === PATH_SEPARATOR_BYTE ? KEY_SEPARATOR_BYTE : b,
     ),
     dataPrefixBytes: DATA_PREFIX_BYTES,
+    noDataValue: NO_DATA_VALUE,
   });
 };
 
@@ -91,8 +93,14 @@ const te = new TextEncoder();
  * @returns {import('./types').CastingSpec}
  */
 export const makeCastingSpecFromObject = specObj => {
-  const { storeName, storeSubkey, dataPrefixBytes, subscription, notifier } =
-    specObj;
+  const {
+    storeName,
+    storeSubkey,
+    dataPrefixBytes,
+    noDataValue,
+    subscription,
+    notifier,
+  } = specObj;
   if (subscription || notifier) {
     return harden({
       subscription,
@@ -107,10 +115,15 @@ export const makeCastingSpecFromObject = specObj => {
   if (typeof dataPrefixBytes === 'string') {
     dataPrefix = te.encode(dataPrefixBytes);
   }
+  let noData = noDataValue;
+  if (typeof noDataValue === 'string') {
+    noData = te.encode(noDataValue);
+  }
   return harden({
     storeName,
     storeSubkey: subkey,
     dataPrefixBytes: dataPrefix,
+    noDataValue: noData,
   });
 };
 
