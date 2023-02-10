@@ -30,6 +30,7 @@ const (
 	StoragePathMailbox      = "mailbox"
 	StoragePathCustom       = "published"
 	StoragePathBundles      = "bundles"
+	StoragePathSwingStore   = "swingStore"
 )
 
 const MaxUint53 = 9007199254740991 // Number.MAX_SAFE_INTEGER = 2**53 - 1

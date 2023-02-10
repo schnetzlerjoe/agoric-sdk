@@ -18,6 +18,7 @@ import { waitUntilQuiescent } from '@agoric/swingset-vat/src/lib-nodejs/waitUnti
 import { assert, Fail } from '@agoric/assert';
 import { openSwingStore } from '@agoric/swing-store';
 import { BridgeId as BRIDGE_ID } from '@agoric/internal';
+import { makeWithQueue } from '@agoric/internal/src/queue.js';
 import * as ActionType from '@agoric/internal/src/action-types.js';
 
 import { extractCoreProposalBundles } from '@agoric/deploy-script-support/src/extract-proposal.js';
@@ -217,13 +218,21 @@ export async function launch({
   metricsProvider = makeDefaultMeterProvider(),
   slogSender,
   swingStoreTraceFile,
+  swingStoreExport,
   keepSnapshots,
   afterCommitCallback = async () => ({}),
 }) {
   console.info('Launching SwingSet kernel');
 
+  let pendingSwingStoreExport = Promise.resolve();
+  const swingStoreExportCallbackWithQueue = makeWithQueue()(swingStoreExport);
+  const swingStoreExportCallback = updates => {
+    pendingSwingStoreExport = swingStoreExportCallbackWithQueue(updates);
+  };
+
   const { kernelStorage, hostStorage } = openSwingStore(kernelStateDBDir, {
     traceFile: swingStoreTraceFile,
+    exportCallback: swingStoreExportCallback,
     keepSnapshots,
   });
   const { kvStore, commit } = hostStorage;
@@ -801,7 +810,7 @@ export async function launch({
 
           // We write out our on-chain state as a number of chainSends.
           const start = Date.now();
-          await saveChainState();
+          await Promise.all([saveChainState(), pendingSwingStoreExport]);
           chainTime = Date.now() - start;
 
           // Advance our saved state variables.

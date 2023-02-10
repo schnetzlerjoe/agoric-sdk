@@ -1,3 +1,5 @@
+/* global setTimeout */
+
 import { resolve as pathResolve } from 'path';
 import v8 from 'node:v8';
 import process from 'node:process';
@@ -12,7 +14,7 @@ import {
   exportMailbox,
 } from '@agoric/swingset-vat/src/devices/mailbox/mailbox.js';
 
-import { Fail } from '@agoric/assert';
+import { Fail, q } from '@agoric/assert';
 import { makeSlogSender, tryFlushSlogSender } from '@agoric/telemetry';
 
 import { makeChainStorageRoot } from '@agoric/internal/src/lib-chainStorage.js';
@@ -205,6 +207,31 @@ export default async function main(progname, args, { env, homedir, agcc }) {
         ),
       ),
     );
+    /** @param {ReadonlyArray<[string, string | undefined]>} updates */
+    const swingStoreExport = async updates => {
+      // Allow I/O to proceed first
+      await new Promise(resolve => setTimeout(resolve, 1));
+
+      const entries = updates.map(([key, value]) => {
+        if (typeof key !== 'string') {
+          throw Fail`Unexpected swingStore exported key ${q(key)}`;
+        }
+        const path = `${STORAGE_PATH.SWING_STORE}.${key}`;
+        if (value == null) {
+          return [path];
+        }
+        if (typeof value !== 'string') {
+          throw Fail`Unexpected ${typeof value} value for swingStore exported key ${q(
+            key,
+          )}`;
+        }
+        return [path, value];
+      });
+      sendToChain({
+        method: 'setWithoutNotify',
+        args: entries,
+      });
+    };
     function setActivityhash(activityhash) {
       const entry = [STORAGE_PATH.ACTIVITYHASH, activityhash];
       const msg = stringify({
@@ -359,6 +386,7 @@ export default async function main(progname, args, { env, homedir, agcc }) {
       verboseBlocks: true,
       metricsProvider,
       slogSender,
+      swingStoreExport,
       swingStoreTraceFile,
       keepSnapshots,
       afterCommitCallback,
