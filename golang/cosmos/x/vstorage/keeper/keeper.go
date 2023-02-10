@@ -32,7 +32,7 @@ type ProposedChange struct {
 }
 
 type ChangeManager interface {
-	Track(ctx sdk.Context, k Keeper, path, value string, isLegacy bool)
+	Track(ctx sdk.Context, k Keeper, entry types.StorageEntry, isLegacy bool)
 	EmitEvents(ctx sdk.Context, k Keeper)
 	Rollback(ctx sdk.Context)
 }
@@ -51,7 +51,11 @@ type Keeper struct {
 	storeKey      sdk.StoreKey
 }
 
-func (bcm *BatchingChangeManager) Track(ctx sdk.Context, k Keeper, path, value string, isLegacy bool) {
+func (bcm *BatchingChangeManager) Track(ctx sdk.Context, k Keeper, entry types.StorageEntry, isLegacy bool) {
+	path := entry.Path()
+	// TODO: differentiate between deletion and setting empty string?
+	// Using empty string for deletion for backwards compatibility
+	value := entry.Value()
 	if change, ok := bcm.changes[path]; ok {
 		change.NewValue = value
 		if isLegacy {
@@ -62,7 +66,7 @@ func (bcm *BatchingChangeManager) Track(ctx sdk.Context, k Keeper, path, value s
 	bcm.changes[path] = &ProposedChange{
 		Path:               path,
 		NewValue:           value,
-		ValueFromLastBlock: k.GetData(ctx, path),
+		ValueFromLastBlock: k.GetData(ctx, path).Value(),
 		LegacyEvents:       isLegacy,
 	}
 }
@@ -115,10 +119,14 @@ func (k Keeper) ExportStorage(ctx sdk.Context) []*types.DataEntry {
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		path := types.EncodedKeyToPath(iterator.Key())
-		value := string(bytes.TrimPrefix(iterator.Value(), types.EncodedDataPrefix))
-		if len(value) == 0 {
+		rawValue := iterator.Value()
+		if len(rawValue) == 0 {
 			continue
 		}
+		if len(rawValue) == 1 && rawValue[0] == types.EncodedEmptyData[0] {
+			continue
+		}
+		value := string(bytes.TrimPrefix(rawValue, types.EncodedDataPrefix))
 		entry := types.DataEntry{Path: path, Value: value}
 		exported = append(exported, &entry)
 	}
@@ -129,7 +137,7 @@ func (k Keeper) ImportStorage(ctx sdk.Context, entries []*types.DataEntry) {
 	for _, entry := range entries {
 		// This set does the bookkeeping for us in case the entries aren't a
 		// complete tree.
-		k.SetStorage(ctx, entry.Path, entry.Value)
+		k.SetStorage(ctx, types.StorageEntry{entry.Path, entry.Value})
 	}
 }
 
@@ -157,13 +165,20 @@ func (k Keeper) EmitChange(ctx sdk.Context, change *ProposedChange) {
 }
 
 // GetData gets generic storage.  The default value is an empty string.
-func (k Keeper) GetData(ctx sdk.Context, path string) string {
+func (k Keeper) GetData(ctx sdk.Context, path string) types.StorageEntry {
 	//fmt.Printf("GetData(%s)\n", path);
 	store := ctx.KVStore(k.storeKey)
 	encodedKey := types.PathToEncodedKey(path)
-	bz := bytes.TrimPrefix(store.Get(encodedKey), types.EncodedDataPrefix)
+	rawValue := store.Get(encodedKey)
+	if len(rawValue) == 0 {
+		return types.StorageEntry{path}
+	}
+	if len(rawValue) == 1 && rawValue[0] == types.EncodedEmptyData[0] {
+		return types.StorageEntry{path}
+	}
+	bz := bytes.TrimPrefix(rawValue, types.EncodedDataPrefix)
 	value := string(bz)
-	return value
+	return types.StorageEntry{path, value}
 }
 
 func (k Keeper) getKeyIterator(ctx sdk.Context, path string) db.Iterator {
@@ -192,7 +207,7 @@ func (k Keeper) GetChildren(ctx sdk.Context, path string) *types.Children {
 // (just an empty string) and exist only to provide linkage to subnodes with
 // data.
 func (k Keeper) HasStorage(ctx sdk.Context, path string) bool {
-	return k.GetData(ctx, path) != ""
+	return k.GetData(ctx, path).IsPresent()
 }
 
 // HasEntry tells if a given path has either subnodes or data.
@@ -221,14 +236,14 @@ func (k Keeper) FlushChangeEvents(ctx sdk.Context) {
 	k.changeManager.Rollback(ctx)
 }
 
-func (k Keeper) SetStorageAndNotify(ctx sdk.Context, path, value string) {
-	k.changeManager.Track(ctx, k, path, value, false)
-	k.SetStorage(ctx, path, value)
+func (k Keeper) SetStorageAndNotify(ctx sdk.Context, entry types.StorageEntry) {
+	k.changeManager.Track(ctx, k, entry, false)
+	k.SetStorage(ctx, entry)
 }
 
-func (k Keeper) LegacySetStorageAndNotify(ctx sdk.Context, path, value string) {
-	k.changeManager.Track(ctx, k, path, value, true)
-	k.SetStorage(ctx, path, value)
+func (k Keeper) LegacySetStorageAndNotify(ctx sdk.Context, entry types.StorageEntry) {
+	k.changeManager.Track(ctx, k, entry, true)
+	k.SetStorage(ctx, entry)
 }
 
 func (k Keeper) AppendStorageValueAndNotify(ctx sdk.Context, path, value string) error {
@@ -236,7 +251,7 @@ func (k Keeper) AppendStorageValueAndNotify(ctx sdk.Context, path, value string)
 
 	// Preserve correctly-formatted data within the current block,
 	// otherwise initialize a blank cell.
-	currentData := k.GetData(ctx, path)
+	currentData := k.GetData(ctx, path).Value()
 	var cell StreamCell
 	_ = json.Unmarshal([]byte(currentData), &cell)
 	if cell.BlockHeight != blockHeight {
@@ -251,7 +266,7 @@ func (k Keeper) AppendStorageValueAndNotify(ctx sdk.Context, path, value string)
 	if err != nil {
 		return err
 	}
-	k.SetStorageAndNotify(ctx, path, string(bz))
+	k.SetStorageAndNotify(ctx, types.StorageEntry{path, string(bz)})
 	return nil
 }
 
@@ -263,22 +278,27 @@ func componentsToPath(components []string) string {
 //
 // Maintains the invariant: path entries exist if and only if self or some
 // descendant has non-empty storage
-func (k Keeper) SetStorage(ctx sdk.Context, path, value string) {
+func (k Keeper) SetStorage(ctx sdk.Context, entry types.StorageEntry) {
 	store := ctx.KVStore(k.storeKey)
+	path := entry.Path()
 	encodedKey := types.PathToEncodedKey(path)
 
-	if value == "" && !k.HasChildren(ctx, path) {
-		// We have no children, can delete.
-		store.Delete(encodedKey)
+	if !entry.IsPresent() {
+		if !k.HasChildren(ctx, path) {
+			// We have no children, can delete.
+			store.Delete(encodedKey)
+		} else {
+			store.Set(encodedKey, types.EncodedEmptyData)
+		}
 	} else {
 		// Update the value.
-		bz := bytes.Join([][]byte{types.EncodedDataPrefix, []byte(value)}, []byte{})
+		bz := bytes.Join([][]byte{types.EncodedDataPrefix, []byte(entry.Value())}, []byte{})
 		store.Set(encodedKey, bz)
 	}
 
 	// Update our other parent children.
 	pathComponents := strings.Split(path, types.PathSeparator)
-	if value == "" {
+	if !entry.IsPresent() {
 		// delete placeholder ancestors if they're no longer needed
 		for i := len(pathComponents) - 1; i >= 0; i-- {
 			ancestor := componentsToPath(pathComponents[0:i])
@@ -296,7 +316,7 @@ func (k Keeper) SetStorage(ctx sdk.Context, path, value string) {
 				// The ancestor exists, implying all further ancestors exist, so we can break.
 				break
 			}
-			store.Set(types.PathToEncodedKey(ancestor), types.EncodedDataPrefix)
+			store.Set(types.PathToEncodedKey(ancestor), types.EncodedEmptyData)
 		}
 	}
 }
