@@ -42,6 +42,6 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, data *types.GenesisState) []abc
 
 func ExportGenesis(ctx sdk.Context, keeper Keeper) *types.GenesisState {
 	gs := NewGenesisState()
-	gs.Data = keeper.ExportStorage(ctx)
+	gs.Data = keeper.ExportStorage(ctx, "")
 	return gs
 }
