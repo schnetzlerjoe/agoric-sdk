@@ -149,6 +149,9 @@ func (k Keeper) MigrateNoDataPlaceholders(ctx sdk.Context) {
 	store := ctx.KVStore(k.storeKey)
 
 	iterator := sdk.KVStorePrefixIterator(store, nil)
+
+	// Copy empty keys first since cosmos stores do not support writing keys
+	// while an iterator is open over the domain
 	emptyKeys := []*([]byte){}
 	{
 		defer iterator.Close()
