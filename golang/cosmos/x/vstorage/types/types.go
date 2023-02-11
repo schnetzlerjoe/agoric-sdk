@@ -11,7 +11,7 @@ func NewChildren() *Children {
 type StorageEntry []string
 
 func (sc StorageEntry) IsPresent() bool {
-	return len(sc) == 2
+	return len(sc) >= 2
 }
 
 func (sc StorageEntry) Path() string {
@@ -19,7 +19,7 @@ func (sc StorageEntry) Path() string {
 }
 
 func (sc StorageEntry) Value() string {
-	if len(sc) == 2 {
+	if len(sc) >= 2 {
 		return sc[1]
 	} else {
 		return ""
