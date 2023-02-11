@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -118,15 +119,18 @@ func (k Keeper) ExportStorage(ctx sdk.Context) []*types.DataEntry {
 	exported := []*types.DataEntry{}
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
-		path := types.EncodedKeyToPath(iterator.Key())
 		rawValue := iterator.Value()
 		if len(rawValue) == 0 {
 			continue
 		}
-		if len(rawValue) == 1 && rawValue[0] == types.EncodedNoDataValue[0] {
+		if bytes.Equal(rawValue, types.EncodedNoDataValue) {
 			continue
 		}
-		value := string(bytes.TrimPrefix(rawValue, types.EncodedDataPrefix))
+		path := types.EncodedKeyToPath(iterator.Key())
+		if !bytes.HasPrefix(rawValue, types.EncodedDataPrefix) {
+			panic(fmt.Errorf("value at path %q starts with unexpected prefix", path))
+		}
+		value := string(rawValue[len(types.EncodedDataPrefix):])
 		entry := types.DataEntry{Path: path, Value: value}
 		exported = append(exported, &entry)
 	}
@@ -194,11 +198,13 @@ func (k Keeper) GetData(ctx sdk.Context, path string) types.StorageEntry {
 	if len(rawValue) == 0 {
 		return types.StorageEntry{path}
 	}
-	if len(rawValue) == 1 && rawValue[0] == types.EncodedNoDataValue[0] {
+	if bytes.Equal(rawValue, types.EncodedNoDataValue) {
 		return types.StorageEntry{path}
 	}
-	bz := bytes.TrimPrefix(rawValue, types.EncodedDataPrefix)
-	value := string(bz)
+	if !bytes.HasPrefix(rawValue, types.EncodedDataPrefix) {
+		panic(fmt.Errorf("value at path %q starts with unexpected prefix", path))
+	}
+	value := string(rawValue[len(types.EncodedDataPrefix):])
 	return types.StorageEntry{path, value}
 }
 
