@@ -35,7 +35,7 @@ import {
   QueueInbound,
 } from './sim-params.js';
 import { parseParams, encodeQueueSizes } from './params.js';
-import { makeQueue } from './make-queue.js';
+import { makeQueue } from './helpers/make-queue.js';
 
 const console = anylogger('launch-chain');
 const blockManagerConsole = anylogger('block-manager');

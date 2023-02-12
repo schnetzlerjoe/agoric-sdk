@@ -21,11 +21,11 @@ import { makePublishKit, pipeTopicToStorage } from '@agoric/notifier';
 
 import * as STORAGE_PATH from '@agoric/internal/src/chain-storage-paths.js';
 import { BridgeId as BRIDGE_ID } from '@agoric/internal';
-import { makeReadCachingStorage } from './bufferedStorage.js';
-import stringify from './json-stable-stringify.js';
+import { makeReadCachingStorage } from './helpers/bufferedStorage.js';
+import stringify from './helpers/json-stable-stringify.js';
 import { launch } from './launch-chain.js';
 import { getTelemetryProviders } from './kernel-stats.js';
-import { makeQueue } from './make-queue.js';
+import { makeQueue } from './helpers/make-queue.js';
 
 // eslint-disable-next-line no-unused-vars
 let whenHellFreezesOver = null;
