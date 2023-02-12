@@ -112,3 +112,22 @@ func CommitBlock(keeper Keeper) error {
 	}
 	return err
 }
+
+func AfterCommitBlock(keeper Keeper) error {
+	// defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), "commit_blocker")
+
+	action := &commitBlockAction{
+		Type:        "AFTER_COMMIT_BLOCK",
+		BlockHeight: endBlockHeight,
+		BlockTime:   endBlockTime,
+	}
+	_, err := keeper.BlockingSend(sdk.Context{}, action)
+
+	// fmt.Fprintf(os.Stderr, "AFTER_COMMIT_BLOCK Returned from SwingSet: %s, %v\n", out, err)
+	if err != nil {
+		// NOTE: A failed AFTER_COMMIT_BLOCK means that the SwingSet state is inconsistent.
+		// Panic here, in the hopes that a replay from scratch will fix the problem.
+		panic(err)
+	}
+	return err
+}
