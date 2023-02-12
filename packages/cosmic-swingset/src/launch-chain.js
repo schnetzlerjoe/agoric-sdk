@@ -727,7 +727,7 @@ export async function launch({
       }
 
       case ActionType.AFTER_COMMIT_BLOCK: {
-        const { blockHeight, blockTime } = action;
+        const { blockHeight, blockTime, isSnapshot = false } = action;
 
         const fullSaveTime = Date.now() - endBlockFinish;
 
@@ -738,6 +738,7 @@ export async function launch({
           saveTime: saveTime / 1000,
           chainTime: chainTime / 1000,
           fullSaveTime: fullSaveTime / 1000,
+          isSnapshot,
         });
 
         afterCommitWorkDone = afterCommit(blockHeight, blockTime);

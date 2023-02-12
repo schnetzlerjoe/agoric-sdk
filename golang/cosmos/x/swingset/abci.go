@@ -37,6 +37,7 @@ type commitBlockAction struct {
 	Type        string `json:"type"`
 	BlockHeight int64  `json:"blockHeight"`
 	BlockTime   int64  `json:"blockTime"`
+	IsSnapshot  bool   `json:"isSnapshot,omitempty"`
 }
 
 func BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock, keeper Keeper) error {
@@ -113,13 +114,20 @@ func CommitBlock(keeper Keeper) error {
 	return err
 }
 
-func AfterCommitBlock(keeper Keeper) error {
+func AfterCommitBlock(keeper Keeper, snapshotHeight int64) error {
 	// defer telemetry.ModuleMeasureSince(types.ModuleName, time.Now(), "commit_blocker")
+
+	isSnapshot := false
+	if snapshotHeight > 0 {
+		// TODO: panic if mismatch ?
+		isSnapshot = snapshotHeight == endBlockHeight
+	}
 
 	action := &commitBlockAction{
 		Type:        "AFTER_COMMIT_BLOCK",
 		BlockHeight: endBlockHeight,
 		BlockTime:   endBlockTime,
+		IsSnapshot:  isSnapshot,
 	}
 	_, err := keeper.BlockingSend(sdk.Context{}, action)
 

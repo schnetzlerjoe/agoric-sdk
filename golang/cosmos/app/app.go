@@ -853,11 +853,18 @@ func (app *GaiaApp) Commit() abci.ResponseCommit {
 		panic(err.Error())
 	}
 
-	res := app.BaseApp.Commit()
+	res, snapshotHeight := app.BaseApp.CommitWithoutSnapshot()
 
-	err = swingset.AfterCommitBlock(app.SwingSetKeeper)
+	err = swingset.AfterCommitBlock(
+		app.SwingSetKeeper,
+		snapshotHeight,
+	)
 	if err != nil {
 		panic(err.Error())
+	}
+
+	if snapshotHeight > 0 {
+		go app.BaseApp.Snapshot(snapshotHeight)
 	}
 
 	return res
