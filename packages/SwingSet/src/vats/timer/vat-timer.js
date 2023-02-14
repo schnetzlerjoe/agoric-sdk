@@ -302,9 +302,7 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
    * @param {TimestampValue} when
    * @returns {TimestampRecord}
    */
-  const toTimestamp = when => harden({ timerBrand, absValue: when });
-  // we don't use TimeMath.toAbs() because the return type is too
-  // lenient
+  const toTimestamp = when => TimeMath.coerceTimestampRecord(when, timerBrand);
 
   /**
    * convert external Timestamp (maybe a branded TimestampRecord,
@@ -314,10 +312,7 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
    * @returns {TimestampValue}
    */
   const fromTimestamp = when => {
-    if (typeof when === 'object' && when.timerBrand) {
-      assert.equal(when.timerBrand, timerBrand, 'TimerBrands must match');
-    }
-    return TimeMath.absValue(when);
+    return TimeMath.absValue(TimeMath.coerceTimestampRecord(when, timerBrand));
   };
 
   /**
@@ -327,10 +322,9 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
    * @returns {RelativeTimeValue}
    */
   const fromRelativeTime = delta => {
-    if (typeof delta === 'object' && delta.timerBrand) {
-      assert.equal(delta.timerBrand, timerBrand, 'TimerBrands must match');
-    }
-    return TimeMath.relValue(delta);
+    return TimeMath.relValue(
+      TimeMath.coerceRelativeTimeRecord(delta, timerBrand),
+    );
   };
 
   const reschedule = () => {

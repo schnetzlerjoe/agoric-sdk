@@ -6,8 +6,8 @@ export function buildRootObject() {
   let ts;
   let timerBrand;
   // exchange only bigints with driver program, add/remove brands locally
-  const toTS = abs => TimeMath.toAbs(abs, timerBrand);
-  const toRT = abs => TimeMath.toRel(abs, timerBrand);
+  const toTS = abs => TimeMath.coerceTimestampRecord(abs, timerBrand);
+  const toRT = abs => TimeMath.coerceRelativeTimeRecord(abs, timerBrand);
   const fromTS = timestamp => TimeMath.absValue(timestamp);
   const events = [];
   const handler = Far('handler', {

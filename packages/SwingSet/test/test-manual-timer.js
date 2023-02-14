@@ -7,7 +7,7 @@ import { buildManualTimer } from '../tools/manual-timer.js';
 test('buildManualTimer', async t => {
   const mt = buildManualTimer();
   const timerBrand = mt.getTimerBrand();
-  const toTS = value => TimeMath.toAbs(value, timerBrand);
+  const toTS = value => TimeMath.coerceTimestampRecord(value, timerBrand);
   const p = mt.wakeAt(toTS(10n));
   mt.advanceTo(15n);
   const result = await p;

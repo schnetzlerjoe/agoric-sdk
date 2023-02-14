@@ -198,8 +198,8 @@ const setup = async (t, allowRefire = false) => {
   // creates the brand internally.
 
   const timerBrand = ts.getTimerBrand();
-  const toTS = value => TimeMath.toAbs(value, timerBrand);
-  const toRT = value => TimeMath.toRel(value, timerBrand);
+  const toTS = value => TimeMath.coerceTimestampRecord(value, timerBrand);
+  const toRT = value => TimeMath.coerceRelativeTimeRecord(value, timerBrand);
 
   return { ts, state, fired, makeHandler, thenFire, toTS, toRT };
 };
@@ -240,8 +240,8 @@ test('brand', async t => {
   });
   t.not(right, wrong);
 
-  const when = TimeMath.toAbs(1000n, wrong);
-  const delay = TimeMath.toRel(1000n, wrong);
+  const when = TimeMath.coerceTimestampRecord(1000n, wrong);
+  const delay = TimeMath.coerceRelativeTimeRecord(1000n, wrong);
   const exp = { message: /TimerBrands must match/ };
   t.throws(() => ts.setWakeup(when, handler), exp);
   t.throws(() => ts.wakeAt(when), exp);
@@ -443,7 +443,7 @@ test('delay', async t => {
   t.deepEqual(fired['0'], ['fulfill', toTS(110n)]);
 
   // delay must be non-negative
-  t.throws(() => ts.delay(toRT(-1n)), { message: '-1 is negative' });
+  t.throws(() => ts.delay(toRT(-1n)), { message: /Must be non-negative/ });
 
   // cancelling a delay causes the promise to reject
   ts.cancel(cancel20);
