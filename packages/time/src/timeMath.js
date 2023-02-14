@@ -1,7 +1,7 @@
-import { Nat } from '@endo/nat';
+import { Fail } from '@agoric/assert';
 import { mustMatch } from '@agoric/store';
-
-import { RelativeTimeShape, TimestampShape } from './typeGuards.js';
+import { Nat } from '@endo/nat';
+import { RelativeTimeRecordShape, RelativeTimeShape, TimestampRecordShape } from './typeGuards.js';
 
 const { details: X, quote: q } = assert;
 /**
@@ -107,50 +107,52 @@ const relLike = (left, right, relValue) => {
 // the `TimeMathType`, since that is the documentation that shows up
 // in the IDE. Well, at least the vscode IDE.
 
-const absValue = abs =>
-  typeof abs === 'bigint' ? Nat(abs) : Nat(abs.absValue);
+const absValue = abs => {
+  if (typeof abs === 'bigint') {
+    return Nat(abs);
+  }
+  mustMatch(abs, TimestampRecordShape, 'timestamp');
+  return Nat(abs.absValue);
+};
 
-const relValue = rel =>
-  typeof rel === 'bigint' ? Nat(rel) : Nat(rel.relValue);
+const relValue = rel => {
+  if (typeof rel === 'bigint') {
+    return Nat(rel);
+  }
+  mustMatch(rel, RelativeTimeRecordShape, 'relative');
+  return Nat(rel.relValue);
+};
 
-const toAbs = (ts, brand = undefined) => {
+const valueOf = () => Fail`Time records cannot be compared with > or <`;
+const makeTimestampRecord = (abs, timerBrand) => harden({ timerBrand, absValue: abs, valueOf });
+const makeRelativeTimeRecord = (rel, timerBrand) => harden({ relValue: rel, timerBrand, valueOf });
+
+const coerceTimestampRecord = (ts, brand) => {
+  brand || Fail`must have a brand`;
   if (typeof ts === 'number') {
     ts = Nat(ts);
   }
   if (typeof ts === 'bigint') {
-    if (brand === undefined) {
-      return ts;
-    } else {
-      return harden({
-        timerBrand: brand,
-        absValue: ts,
-      });
-    }
+    return makeTimestampRecord(ts, brand);
   } else {
     const { timerBrand } = ts;
+    mustMatch(ts, TimestampRecordShape, 'timestamp');
     agreedTimerBrand(timerBrand, brand);
-    mustMatch(ts, TimestampShape, 'timestamp');
     return ts;
   }
 };
 
-const toRel = (rt, brand = undefined) => {
+const coerceRelativeTimeRecord = (rt, brand) => {
+  brand || Fail`must have a brand`;
   if (typeof rt === 'number') {
     rt = Nat(rt);
   }
   if (typeof rt === 'bigint') {
-    if (brand === undefined) {
-      return rt;
-    } else {
-      return harden({
-        timerBrand: brand,
-        relValue: rt,
-      });
-    }
+    return makeRelativeTimeRecord(rt, brand);
   } else {
     const { timerBrand } = rt;
+    mustMatch(rt, RelativeTimeRecordShape, 'relativeTime');
     agreedTimerBrand(timerBrand, brand);
-    mustMatch(rt, RelativeTimeShape, 'relativeTime');
     return rt;
   }
 };
@@ -249,8 +251,8 @@ const compareValues = (v1, v2) => {
 export const TimeMath = harden({
   absValue,
   relValue,
-  toAbs,
-  toRel,
+  coerceTimestampRecord,
+  coerceRelativeTimeRecord,
   addAbsRel,
   addRelRel,
   subtractAbsAbs,

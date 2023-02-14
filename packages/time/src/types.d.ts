@@ -42,12 +42,12 @@ export type RelativeTimeValue = bigint;
 
 export type TimestampRecord = {
   timerBrand: TimerBrand;
-  absValue: TimestampValue;
+  absValue: bigint;
 };
 
 export type RelativeTimeRecord = {
   timerBrand: TimerBrand;
-  relValue: RelativeTimeValue;
+  relValue: bigint;
 };
 
 /**
@@ -210,15 +210,15 @@ export type TimeMathType = {
   relValue: (rel: RelativeTime) => RelativeTimeValue;
 
   /**
-   * Coerces to a Timestamp if possible. If a brand is provided, ensure it
-   * matches and return a Timestamp labeled with that brand.
+   * Coerces to a TimestampRecord if possible, else throws. If the value has a brand, ensure it matches.
+   * Return a Timestamp labeled with that brand.
    */
-  toAbs: (abs: Timestamp | number, brand?: TimerBrand) => Timestamp;
+  coerceTimestampRecord: (abs: TimestampRecord | TimestampValue | number, brand: TimerBrand) => TimestampRecord;
   /**
    * Coerces to a RelativeTime if possible. If a brand is provided, ensure it
    * matches and return a RelativeTime labeled with that brand.
    */
-  toRel: (rel: RelativeTime | number, brand?: TimerBrand) => RelativeTime;
+  coerceRelativeTimeRecord: (rel: RelativeTimeRecord | RelativeTimeValue | number, brand: TimerBrand) => RelativeTimeRecord;
   /**
    * An absolute time + a relative time gives a new absolute time.
    */
