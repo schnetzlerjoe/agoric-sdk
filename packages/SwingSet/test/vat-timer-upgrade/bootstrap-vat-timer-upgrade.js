@@ -1,13 +1,19 @@
 import { E } from '@endo/eventual-send';
 import { Far } from '@endo/marshal';
+import { TimeMath } from '@agoric/time';
 
 export function buildRootObject() {
   let ts;
+  let timerBrand;
+  // exchange only bigints with driver program, add/remove brands locally
+  const toTS = abs => TimeMath.toAbs(abs, timerBrand);
+  const toRT = abs => TimeMath.toRel(abs, timerBrand);
+  const fromTS = timestamp => TimeMath.absValue(timestamp);
   const events = [];
   function makeHandler(name) {
     return Far(`handler-${name}`, {
       wake(time) {
-        events.push(`${name}-${time}`);
+        events.push(`${name}-${fromTS(time)}`);
       },
     });
   }
@@ -22,27 +28,38 @@ export function buildRootObject() {
   return Far('root', {
     async bootstrap(vats, devices) {
       ts = await E(vats.timer).createTimerService(devices.timer);
+      timerBrand = await E(ts).getTimerBrand();
       // to exercise vat-vattp upgrade, we need the vatAdminService to
       // be configured, even though we don't use it ourselves
       await E(vats.vatAdmin).createVatAdminService(devices.vatAdmin);
     },
 
     async installWakeup(baseTime) {
-      return E(ts).setWakeup(baseTime, makeHandler('wake'), cancelToken);
+      const handler = makeHandler('wake');
+      const t = await E(ts).setWakeup(toTS(baseTime), handler, cancelToken);
+      return fromTS(t);
     },
 
     async installRepeater(delay, interval) {
-      repeaterControl = await E(ts).makeRepeater(delay, interval);
+      repeaterControl = await E(ts).makeRepeater(toRT(delay), toRT(interval));
       return E(repeaterControl).schedule(makeHandler('repeat'));
     },
 
     async installRepeatAfter(delay, interval) {
-      const handler = makeHandler('repeatAfter');
-      return E(ts).repeatAfter(delay, interval, handler, cancelToken);
+      return E(ts).repeatAfter(
+        toRT(delay),
+        toRT(interval),
+        makeHandler('repeatAfter'),
+        cancelToken,
+      );
     },
 
     async installNotifier(name, delay, interval) {
-      notifiers[name] = await E(ts).makeNotifier(delay, interval, cancelToken);
+      notifiers[name] = await E(ts).makeNotifier(
+        toRT(delay),
+        toRT(interval),
+        cancelToken,
+      );
       iterators[name] = await E(notifiers[name])[Symbol.asyncIterator]();
     },
 
@@ -65,7 +82,8 @@ export function buildRootObject() {
     },
 
     async readClock() {
-      return E(clock).getCurrentTimestamp();
+      const t = await E(clock).getCurrentTimestamp();
+      return fromTS(t);
     },
 
     async readNotifier(name) {
@@ -73,12 +91,13 @@ export function buildRootObject() {
         .getUpdateSince(updateCount)
         .then(update => {
           updateCount = update.updateCount;
-          return update;
+          return { ...update, value: fromTS(update.value) };
         });
     },
 
     async readIterator(name) {
-      return E(iterators[name]).next();
+      const result = await E(iterators[name]).next();
+      return { ...result, value: fromTS(result.value) };
     },
 
     async getEvents() {

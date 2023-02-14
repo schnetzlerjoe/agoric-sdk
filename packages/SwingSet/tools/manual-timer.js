@@ -57,8 +57,8 @@ const setup = () => {
  * A fake TimerService, for unit tests that do not use a real
  * kernel. You can make time pass by calling `advanceTo(when)`.
  *
- * @param {{ startTime?: Timestamp }} [options]
- * @returns {TimerService & { advanceTo: (when: Timestamp) => void; }}
+ * @param {{ startTime?: bigint }} [options]
+ * @returns {TimerService & { advanceTo: (when: bigint) => void; }}
  */
 export const buildManualTimer = (options = {}) => {
   const { startTime = 0n, ...other } = options;
