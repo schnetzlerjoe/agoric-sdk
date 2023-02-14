@@ -1,6 +1,7 @@
 import { Far } from '@endo/marshal';
 import { makeScalarMapStore } from '@agoric/store';
 import { bindAllMethods } from '@agoric/internal';
+import { TimeMath } from '@agoric/time';
 import { buildRootObject } from '../src/vats/timer/vat-timer.js';
 
 /**
@@ -57,16 +58,22 @@ const setup = () => {
  * A fake TimerService, for unit tests that do not use a real
  * kernel. You can make time pass by calling `advanceTo(when)`.
  *
- * @param {{ startTime?: bigint }} [options]
- * @returns {TimerService & { advanceTo: (when: bigint) => void; }}
+ * @param {{ startTime?: Timestamp }} [options]
+ * @returns {TimerService & { advanceTo: (when: Timestamp) => void; }}
  */
 export const buildManualTimer = (options = {}) => {
   const { startTime = 0n, ...other } = options;
   const unrec = Object.getOwnPropertyNames(other).join(',');
   assert.equal(unrec, '', `buildManualTimer unknown options ${unrec}`);
   const { timerService, state } = setup();
-  assert.typeof(startTime, 'bigint');
-  state.now = startTime;
+
+  // the type of startTime is "Timestamp", which could nominally
+  // include a TimerBrand, but in practice it couldn't possibly,
+  // because the only acceptable brand hasn't been created (by the
+  // timer itself) yet
+  const startTimeVal = TimeMath.absValue(startTime);
+  assert.typeof(startTimeVal, 'bigint');
+  state.now = startTimeVal;
 
   const wake = () => {
     if (state.currentHandler) {
@@ -75,6 +82,7 @@ export const buildManualTimer = (options = {}) => {
   };
 
   const advanceTo = when => {
+    when = TimeMath.absValue(when);
     assert.typeof(when, 'bigint');
     assert(when > state.now, `advanceTo(${when}) < current ${state.now}`);
     state.now = when;
