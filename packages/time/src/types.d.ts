@@ -88,7 +88,7 @@ export interface TimerService {
   /**
    * Retrieve the latest timestamp
    */
-  getCurrentTimestamp: () => Timestamp;
+  getCurrentTimestamp: () => TimestampRecord;
   /**
    * Return value is the time at which the call is scheduled to take place
    */
@@ -96,7 +96,7 @@ export interface TimerService {
     baseTime: Timestamp,
     waker: ERef<TimerWaker>,
     cancelToken?: CancelToken,
-  ) => Timestamp;
+  ) => TimestampRecord;
   /**
    * Create and return a promise that will resolve after the absolte
    * time has passed.
@@ -104,12 +104,15 @@ export interface TimerService {
   wakeAt: (
     baseTime: Timestamp,
     cancelToken?: CancelToken,
-  ) => Promise<Timestamp>;
+  ) => Promise<TimestampRecord>;
   /**
    * Create and return a promise that will resolve after the relative time has
    * passed.
    */
-  delay: (delay: RelativeTime, cancelToken?: CancelToken) => Promise<Timestamp>;
+  delay: (
+    delay: RelativeTime,
+    cancelToken?: CancelToken,
+  ) => Promise<TimestampRecord>;
   /**
    * Create and return a repeater that will schedule `wake()` calls
    * repeatedly at times that are a multiple of interval following delay.
@@ -141,7 +144,7 @@ export interface TimerService {
     delay: RelativeTime,
     interval: RelativeTime,
     cancelToken?: CancelToken,
-  ) => Notifier<Timestamp>;
+  ) => Notifier<TimestampRecord>;
   /**
    * Cancel a previously-established wakeup or repeater.
    */
@@ -160,7 +163,7 @@ export interface Clock {
   /**
    * Retrieve the latest timestamp
    */
-  getCurrentTimestamp: () => Timestamp;
+  getCurrentTimestamp: () => TimestampRecord;
   /**
    * Retrieve the Brand for this timer service.
    */
@@ -181,7 +184,7 @@ export interface TimerRepeater {
    * the first call to `E(waker).wake()`.  The waker will continue to be scheduled
    * every interval until the repeater is disabled.
    */
-  schedule: (waker: ERef<TimerWaker>) => Timestamp;
+  schedule: (waker: ERef<TimerWaker>) => TimestampRecord;
   /**
    * Disable this repeater, so `schedule(w)` can't
    * be called, and wakers already scheduled with this repeater won't be

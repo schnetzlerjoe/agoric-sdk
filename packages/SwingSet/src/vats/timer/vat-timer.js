@@ -22,6 +22,7 @@ import { TimeMath } from '@agoric/time';
 
 /**
  * @typedef {import('@agoric/time/src/types').Timestamp} Timestamp
+ * @typedef {import('@agoric/time/src/types').TimestampRecord} TimestampRecord
  * @typedef {import('@agoric/time/src/types').TimestampValue} TimestampValue
  * @typedef {import('@agoric/time/src/types').RelativeTime} RelativeTime
  * @typedef {import('@agoric/time/src/types').RelativeTimeValue} RelativeTimeValue
@@ -296,32 +297,41 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
   // -- helper functions
 
   /**
-   * convert an internal TimestampValue into a branded Timestamp
+   * convert an internal TimestampValue into a branded TimestampRecord
    *
    * @param {TimestampValue} when
-   * @returns {Timestamp}
+   * @returns {TimestampRecord}
    */
-  const toTimestamp = when => {
-    return TimeMath.toAbs(when); // TODO (when, brand)
-  };
+  const toTimestamp = when => harden({ timerBrand, absValue: when });
+  // we don't use TimeMath.toAbs() because the return type is too
+  // lenient
 
   /**
-   * convert external (branded) Timestamp to internal bigint
+   * convert external Timestamp (maybe a branded TimestampRecord,
+   * maybe a brandless TimestampValue) to internal bigint
    *
    * @param {Timestamp} when
    * @returns {TimestampValue}
    */
   const fromTimestamp = when => {
-    return TimeMath.absValue(when); // TODO: brand
+    if (typeof when === 'object' && when.timerBrand) {
+      assert.equal(when.timerBrand, timerBrand, 'TimerBrands must match');
+    }
+    return TimeMath.absValue(when);
   };
 
   /**
-   * convert external (branded) RelativeTime to internal bigint
+   * convert external (branded or not) RelativeTime to internal bigint
    *
    * @param {RelativeTime} delta
    * @returns {RelativeTimeValue}
    */
-  const fromRelativeTime = delta => TimeMath.relValue(delta);
+  const fromRelativeTime = delta => {
+    if (typeof delta === 'object' && delta.timerBrand) {
+      assert.equal(delta.timerBrand, timerBrand, 'TimerBrands must match');
+    }
+    return TimeMath.relValue(delta);
+  };
 
   const reschedule = () => {
     // the first wakeup should be in the future: the device will not
@@ -390,7 +400,7 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
         removeCancel(cancels, state.cancelToken, self); // stop tracking
       }
       // we tell the client the most recent time available
-      const p = E(state.handler).wake(now);
+      const p = E(state.handler).wake(toTimestamp(now));
       // one-shots ignore errors, but note this does make handler
       // errors harder to notice.  TODO we'd use E.sendOnly() for
       // non-repeaters, if it existed
@@ -430,7 +440,7 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
         removeCancel(cancels, state.cancelToken, self); // stop tracking
       }
       if (wakeupPromises.has(self)) {
-        wakeupPromises.get(self).resolve(now);
+        wakeupPromises.get(self).resolve(toTimestamp(now));
         // else we were upgraded and promise was rejected/disconnected
       }
     },
@@ -516,7 +526,7 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
       state.scheduled = undefined;
       // repeaters stay in "firing" until their promise settles
       E(state.handler)
-        .wake(now)
+        .wake(toTimestamp(now))
         .then(
           _res => self.wakerDone(), // reschedule unless cancelled
           _err => self.wakerFailed(), // do not reschedule
@@ -567,20 +577,20 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
   const getCurrentTimestamp = () => toTimestamp(getNow());
 
   /**
-   * @param {Timestamp} when
+   * @param {Timestamp} whenTS
    * @param {Handler} handler
    * @param {CancelToken} [cancelToken]
    * @returns {Timestamp}
    */
-  const setWakeup = (when, handler, cancelToken = undefined) => {
-    when = fromTimestamp(when);
+  const setWakeup = (whenTS, handler, cancelToken = undefined) => {
+    const when = fromTimestamp(whenTS);
     assert.equal(passStyleOf(handler), 'remotable', 'bad setWakeup() handler');
     if (cancelToken) {
       assert.equal(passStyleOf(cancelToken), 'remotable', 'bad cancel token');
     }
     const now = getNow();
     if (when <= now) {
-      const p = E(handler).wake(now); // would prefer sendOnly()
+      const p = E(handler).wake(toTimestamp(now)); // would prefer sendOnly()
       p.catch(_err => undefined);
     } else {
       const event = makeOneShotEvent(when, handler, cancelToken);
@@ -596,12 +606,12 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
    * provided, calling ts.cancel(cancelToken) before wakeup will cause
    * the Promise to be rejected instead.
    *
-   * @param {Timestamp} when
+   * @param {Timestamp} whenTS
    * @param {CancelToken} [cancelToken]
    * @returns { Promise<Timestamp> }
    */
-  const wakeAt = (when, cancelToken = undefined) => {
-    when = fromTimestamp(when);
+  const wakeAt = (whenTS, cancelToken = undefined) => {
+    const when = fromTimestamp(whenTS);
     const now = getNow();
     return wakeAtInternal(when, now, cancelToken);
   };
@@ -610,12 +620,12 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
    * addDelay(delay): return a Promise that fires (with the scheduled
    * wakeup time) at 'delay' time units in the future.
    *
-   * @param {RelativeTime} delay
+   * @param {RelativeTime} delayRT
    * @param {CancelToken} [cancelToken]
    * @returns { Promise<Timestamp> }
    */
-  const addDelay = (delay, cancelToken = undefined) => {
-    delay = fromRelativeTime(delay);
+  const addDelay = (delayRT, cancelToken = undefined) => {
+    const delay = fromRelativeTime(delayRT);
     assert(delay >= 0n, 'delay must not be negative');
     const now = getNow();
     const when = now + delay;
@@ -710,15 +720,15 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
     createRepeater(delay, interval).repeater;
 
   /**
-   * @param {RelativeTime} delay
-   * @param {RelativeTime} interval
+   * @param {RelativeTime} delayRT
+   * @param {RelativeTime} intervalRT
    * @param {Handler} handler
    * @param {CancelToken} [cancelToken]
    */
-  const repeatAfter = (delay, interval, handler, cancelToken) => {
+  const repeatAfter = (delayRT, intervalRT, handler, cancelToken) => {
     // first wakeup at now+delay, then now+delay+k*interval
-    delay = fromRelativeTime(delay);
-    interval = fromRelativeTime(interval);
+    const delay = fromRelativeTime(delayRT);
+    const interval = fromRelativeTime(intervalRT);
     const now = getNow();
     const start = now + delay;
     return repeat(start, interval, handler, cancelToken);
@@ -771,15 +781,15 @@ export const buildRootObject = (vatPowers, _vatParameters, baggage) => {
   // late.
 
   /**
-   * @param {RelativeTime} delay
-   * @param {RelativeTime} interval
+   * @param {RelativeTime} delayRT
+   * @param {RelativeTime} intervalRT
    * @param {CancelToken} [cancelToken]
    */
-  const initNotifier = (delay, interval, cancelToken = undefined) => {
+  const initNotifier = (delayRT, intervalRT, cancelToken = undefined) => {
     // first wakeup at now+delay, then now+delay+k*interval
-    delay = fromRelativeTime(delay);
+    const delay = fromRelativeTime(delayRT);
     assert(delay >= 0n, 'delay must be non-negative');
-    interval = fromRelativeTime(interval);
+    const interval = fromRelativeTime(intervalRT);
     assert(interval > 0n, 'interval must be nonzero');
     const now = getNow();
     const start = now + delay;
