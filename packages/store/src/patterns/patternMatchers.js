@@ -598,6 +598,7 @@ const makePatternKit = () => {
     // should only throw
     checkMatches(specimen, patt, assertChecker, label);
     Fail`internal: ${label}: inconsistent pattern match: ${q(patt)}`;
+    // TODO: this could usefully return specimen
   };
 
   // /////////////////////// getRankCover //////////////////////////////////////
