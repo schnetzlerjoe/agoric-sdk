@@ -7,6 +7,7 @@ import bundleSource from '@endo/bundle-source';
 import { E } from '@endo/eventual-send';
 import { M, mustMatch, keyEQ } from '@agoric/store';
 import { AmountMath, AssetKind, BrandShape } from '@agoric/ertp';
+import { TimeMath } from '@agoric/time';
 
 import buildManualTimer from '../../../tools/manualTimer.js';
 import { setup } from '../setupBasicMints.js';
@@ -25,6 +26,7 @@ test('zoe - coveredCall with swap for invitation', async t => {
   t.plan(24);
   // Setup the environment
   const timer = buildManualTimer(t.log);
+  const toTS = ts => TimeMath.toAbs(ts, timer.getTimerBrand());
   const {
     moolaKit,
     simoleanKit,
@@ -89,7 +91,7 @@ test('zoe - coveredCall with swap for invitation', async t => {
     want: { StrikePrice: simoleans(7n) },
     exit: {
       afterDeadline: {
-        deadline: 100n, // we will not reach this
+        deadline: toTS(100n), // we will not reach this
         timer,
       },
     },

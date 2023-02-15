@@ -10,6 +10,7 @@ import { Far } from '@endo/marshal';
 import { makeIssuerKit, AmountMath } from '@agoric/ertp';
 import { makePromiseKit } from '@endo/promise-kit';
 
+import { TimeMath } from '@agoric/time';
 import { makeNotifierKit, subscribeEach } from '@agoric/notifier';
 import { makeFakeMarshaller } from '@agoric/notifier/tools/testSupports.js';
 // eslint-disable-next-line import/no-extraneous-dependencies -- XXX refactor
@@ -79,7 +80,7 @@ const makePublicationChecker = async (t, aggregatorPublicFacet) => {
     /** @param {{timestamp: bigint, amountOut: any}} spec */
     async nextMatches({ timestamp, amountOut }) {
       const { value } = await E(publications).next();
-      t.is(value.timestamp, timestamp, 'wrong timestamp');
+      t.is(TimeMath.absValue(value.timestamp), timestamp, 'wrong timestamp');
       t.is(value.amountOut.value, amountOut, 'wrong amountOut value');
     },
   };
@@ -447,13 +448,14 @@ test('oracle invitation', async t => {
   const { notifier: oracle1, updater: updater1 } = makeNotifierKit();
   const or1 = E(zoe).offer(inv1, undefined, undefined, { notifier: oracle1 });
   const oracleAdmin1 = E(or1).getOfferResult();
+  const timerBrand = await E(oracleTimer).getTimerBrand();
 
   /** @type {Amount<'nat'>} */
   const amountIn = AmountMath.make(brandIn, 1000000n);
   const makeQuoteValue = (timestamp, valueOut) => [
     {
       timer: oracleTimer,
-      timestamp,
+      timestamp: TimeMath.coerceTimestampRecord(timestamp, timerBrand),
       amountIn,
       amountOut: AmountMath.make(brandOut, valueOut),
     },
@@ -580,6 +582,7 @@ test('quoteAtTime', async t => {
   const { makeFakePriceOracle, zoe } = t.context;
 
   const userTimer = buildManualTimer(() => {}, 0n, { eventLoopIteration });
+  const toTS = ts => TimeMath.coerceTimestampRecord(ts, userTimer.getTimerBrand());
 
   const aggregator = await t.context.makeMedianAggregator();
   const {
@@ -597,7 +600,7 @@ test('quoteAtTime', async t => {
   const pa = E(aggregator.publicFacet).getPriceAuthority();
 
   const quoteAtTime = E(pa).quoteAtTime(
-    7n,
+    toTS(7n),
     AmountMath.make(brandIn, 41n),
     usdBrand,
   );
@@ -615,7 +618,7 @@ test('quoteAtTime', async t => {
   /** @type {PromiseRecord<PriceQuote>} */
   const userQuotePK = makePromiseKit();
   await E(userTimer).setWakeup(
-    1n,
+    toTS(1n),
     Far('wakeHandler', {
       async wake(_timestamp) {
         userQuotePK.resolve(

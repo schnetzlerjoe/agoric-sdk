@@ -8,6 +8,7 @@ import { E } from '@endo/eventual-send';
 import { Far } from '@endo/marshal';
 import { AmountMath, AssetKind } from '@agoric/ertp';
 import { keyEQ } from '@agoric/store';
+import { TimeMath } from '@agoric/time';
 
 import buildManualTimer from '../../../tools/manualTimer.js';
 import { setup } from '../setupBasicMints.js';
@@ -37,6 +38,8 @@ test('zoe - coveredCall', async t => {
     const moolaPurse = await E(moolaKit.issuer).makeEmptyPurse();
     const simoleanPurse = await E(simoleanKit.issuer).makeEmptyPurse();
     const bucksPurse = await E(bucksKit.issuer).makeEmptyPurse();
+    const timerBrand = await E(timer).getTimerBrand();
+    const toTS = ts => TimeMath.toAbs(ts, timerBrand);
     return {
       installCode: async () => {
         // pack the contract
@@ -59,7 +62,7 @@ test('zoe - coveredCall', async t => {
         const proposal = harden({
           give: { Moola: moola(3n) },
           want: { Simoleans: simoleans(7n), Bucks: bucks(2n) },
-          exit: { afterDeadline: { deadline: 1n, timer } },
+          exit: { afterDeadline: { deadline: toTS(1n), timer } },
         });
         const payments = { Moola: moolaPayment };
 
@@ -235,6 +238,7 @@ test(`zoe - coveredCall - alice's deadline expires, cancelling alice and bob`, a
     'b1-coveredcall',
   );
   const timer = buildManualTimer(t.log);
+  const toTS = ts => TimeMath.toAbs(ts, timer.getTimerBrand());
 
   // Setup Alice
   const aliceMoolaPayment = moolaKit.mint.mintPayment(moola(3n));
@@ -262,7 +266,7 @@ test(`zoe - coveredCall - alice's deadline expires, cancelling alice and bob`, a
     want: { StrikePrice: simoleans(7n) },
     exit: {
       afterDeadline: {
-        deadline: 1n,
+        deadline: toTS(1n),
         timer,
       },
     },
@@ -351,6 +355,7 @@ test('zoe - coveredCall with swap for invitation', async t => {
   t.plan(24);
   // Setup the environment
   const timer = buildManualTimer(t.log);
+  const toTS = ts => TimeMath.toAbs(ts, timer.getTimerBrand());
   const {
     moolaKit,
     simoleanKit,
@@ -415,7 +420,7 @@ test('zoe - coveredCall with swap for invitation', async t => {
     want: { StrikePrice: simoleans(7n) },
     exit: {
       afterDeadline: {
-        deadline: 100n, // we will not reach this
+        deadline: toTS(100n), // we will not reach this
         timer,
       },
     },
@@ -616,6 +621,7 @@ test('zoe - coveredCall with coveredCall for invitation', async t => {
   t.plan(31);
   // Setup the environment
   const timer = buildManualTimer(t.log);
+  const toTS = ts => TimeMath.toAbs(ts, timer.getTimerBrand());
   const {
     moolaKit,
     simoleanKit,
@@ -676,7 +682,7 @@ test('zoe - coveredCall with coveredCall for invitation', async t => {
     want: { StrikePrice: simoleans(7n) },
     exit: {
       afterDeadline: {
-        deadline: 100n, // we will not reach this
+        deadline: toTS(100n), // we will not reach this
         timer,
       },
     },
@@ -729,7 +735,7 @@ test('zoe - coveredCall with coveredCall for invitation', async t => {
     want: { StrikePrice: bucks(1n) },
     exit: {
       afterDeadline: {
-        deadline: 100n, // we will not reach this
+        deadline: toTS(100n), // we will not reach this
         timer,
       },
     },
@@ -912,6 +918,7 @@ test('zoe - coveredCall non-fungible', async t => {
     'b1-coveredcall',
   );
   const timer = buildManualTimer(t.log);
+  const toTS = ts => TimeMath.toAbs(ts, timer.getTimerBrand());
 
   // Setup Alice
   const growlTiger = harden(['GrowlTiger']);
@@ -946,7 +953,7 @@ test('zoe - coveredCall non-fungible', async t => {
   const aliceProposal = harden({
     give: { UnderlyingAsset: growlTigerAmount },
     want: { StrikePrice: aGloriousShieldAmount },
-    exit: { afterDeadline: { deadline: 1n, timer } },
+    exit: { afterDeadline: { deadline: toTS(1n), timer } },
   });
   const alicePayments = { UnderlyingAsset: aliceCcPayment };
   // Alice creates a call option

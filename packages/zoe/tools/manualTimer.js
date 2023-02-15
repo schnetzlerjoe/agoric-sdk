@@ -11,7 +11,7 @@ import './internal-types.js';
 
 /**
  * @typedef {{
- *  timeStep?: import('@agoric/time/src/types').RelativeTime,
+ *  timeStep?: import('@agoric/time/src/types').RelativeTime | bigint,
  *  eventLoopIteration?: () => Promise<unknown>,
  * }} ZoeManualTimerOptions
  */
@@ -52,7 +52,7 @@ const nolog = (..._args) => {};
  * boundaries
  *
  * @param {(...args: any[]) => void} [log]
- * @param {import('@agoric/time/src/types').Timestamp} [startValue=0n]
+ * @param {import('@agoric/time/src/types').Timestamp | bigint} [startValue=0n]
  * @param {ZoeManualTimerOptions} [options]
  * @returns {ManualTimer}
  */
@@ -63,15 +63,23 @@ const buildManualTimer = (log = nolog, startValue = 0n, options = {}) => {
     eventLoopIteration = () => 0,
     ...buildOptions
   } = options;
-  assert.typeof(timeStep, 'bigint');
+
+  // neither of these could possibly be a record, because the caller
+  // doesn't have our brand yet, but this makes the types maximally
+  // tolerant
+  startValue = TimeMath.absValue(startValue);
+  const timeStepValue = TimeMath.relValue(timeStep);
+  assert.typeof(startValue, 'bigint');
+  assert.typeof(timeStepValue, 'bigint');
 
   const timerService = build({ startTime: startValue, ...buildOptions });
+  const toRT = rt => TimeMath.coerceRelativeTimeRecord(rt, timerService.getTimerBrand());
 
   const tick = msg => {
     const oldTime = timerService.getCurrentTimestamp();
-    const newTime = TimeMath.addAbsRel(oldTime, timeStep);
-    log(`@@ tick:${newTime}${msg ? `: ${msg}` : ''} @@`);
-    timerService.advanceTo(newTime);
+    const newTime = TimeMath.addAbsRel(oldTime, toRT(timeStepValue));
+    log(`@@ tick:${TimeMath.absValue(newTime)}${msg ? `: ${msg}` : ''} @@`);
+    timerService.advanceTo(TimeMath.absValue(newTime));
     // that schedules wakeups, but they don't fire until a later turn
     return eventLoopIteration();
   };
@@ -86,7 +94,7 @@ const buildManualTimer = (log = nolog, startValue = 0n, options = {}) => {
 
   const setWakeup = (when, handler, cancelToken) => {
     const now = timerService.getCurrentTimestamp();
-    log(`@@ schedule task for:${when}, currently: ${now} @@`);
+    log(`@@ schedule task for:${TimeMath.absValue(when)}, currently: ${TimeMath.absValue(now)} @@`);
     return timerService.setWakeup(when, handler, cancelToken);
   };
 

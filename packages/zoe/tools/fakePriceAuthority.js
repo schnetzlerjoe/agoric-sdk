@@ -13,6 +13,7 @@ import { natSafeMath } from '../src/contractSupport/index.js';
 import './types-ambient.js';
 
 const { details: X } = assert;
+const { coerceRelativeTimeRecord } = TimeMath;
 
 // 'if (a >= b)' becomes 'if (timestampGTE(a,b))'
 const timestampGTE = (a, b) => TimeMath.compareAbs(a, b) >= 0;
@@ -218,7 +219,10 @@ export async function makeFakePriceAuthority(options) {
         }
       },
     });
-    const repeater = E(timer).makeRepeater(1n, quoteInterval);
+    const timerBrand = await E(timer).getTimerBrand();
+    const soonRT = coerceRelativeTimeRecord(1n, timerBrand);
+    const quoteIntervalRT = coerceRelativeTimeRecord(quoteInterval, timerBrand);
+    const repeater = E(timer).makeRepeater(soonRT, quoteIntervalRT);
     return E(repeater).schedule(handler);
   }
 
@@ -280,6 +284,7 @@ export async function makeFakePriceAuthority(options) {
       return makeNotifierFromAsyncIterable(generateQuotes(amountIn, brandOut));
     },
     quoteAtTime: (timeStamp, amountIn, brandOut) => {
+      timeStamp = TimeMath.absValue(timeStamp);
       assert.typeof(timeStamp, 'bigint');
       assertBrands(amountIn.brand, brandOut);
       if (latestTick && timestampLTE(timeStamp, latestTick)) {
