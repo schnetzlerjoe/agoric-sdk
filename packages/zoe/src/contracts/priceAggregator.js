@@ -296,6 +296,7 @@ const start = async (zcf, privateArgs) => {
       makeCreateQuote({ overridePrice: median, timestamp }),
     );
 
+    // if (TimeMath.compareAbs(TimeMath.coerceTimestampRecord(timestamp), publishedTimestamp) === -1) {
     if (timestamp < publishedTimestamp) {
       // A more recent timestamp has been published already, so we are too late.
       return;
