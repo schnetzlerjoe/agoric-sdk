@@ -73,6 +73,7 @@ export function makeSnapStoreIO() {
  * @typedef {{
  *   dump: () => SwingStoreDebugDump,
  *   serialize: () => Buffer,
+ *   getDB: () => sqlite3.Database | undefined,
  * }} SwingStoreDebugTools
  *
  * @typedef {{
@@ -591,6 +592,7 @@ function makeSwingStore(dirPath, forceReset, options = {}) {
   const debug = {
     serialize,
     dump,
+    getDB: () => db,
   };
 
   return harden({
