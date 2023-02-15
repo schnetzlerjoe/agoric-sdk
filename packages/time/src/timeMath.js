@@ -123,9 +123,8 @@ const relValue = rel => {
   return Nat(rel.relValue);
 };
 
-const valueOf = () => Fail`Time records cannot be compared with > or <`;
-const makeTimestampRecord = (abs, timerBrand) => harden({ timerBrand, absValue: abs, valueOf });
-const makeRelativeTimeRecord = (rel, timerBrand) => harden({ relValue: rel, timerBrand, valueOf });
+const makeTimestampRecord = (abs, timerBrand) => harden({ timerBrand, absValue: abs });
+const makeRelativeTimeRecord = (rel, timerBrand) => harden({ relValue: rel, timerBrand });
 
 const coerceTimestampRecord = (ts, brand) => {
   brand || Fail`must have a brand`;
