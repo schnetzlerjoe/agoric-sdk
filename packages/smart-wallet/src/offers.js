@@ -111,6 +111,7 @@ export const makeOfferExecutor = ({
           offerArgs,
         );
         logger.info(id, 'seated');
+        updateStatus({});
 
         // publish 'result'
         void E.when(
