@@ -87,7 +87,11 @@ export const makeOfferExecutor = ({
           }
         });
         if (seatRef) {
-          E(seatRef).tryExit();
+          E(seatRef)
+            .tryExit()
+            .catch(e => {
+              logger.error('EXIT OFFER ERROR:', e);
+            });
         }
       };
 
