@@ -54,7 +54,7 @@ export const makeOfferExecutor = ({
      * Take an offer description provided in capData, augment it with payments and call zoe.offer()
      *
      * @param {OfferSpec} offerSpec
-     * @returns {Promise<void>} when the offer has been sent to Zoe; payouts go into this wallet's purses
+     * @returns {Promise<UserSeat?>} when the offer has been sent to Zoe; payouts go into this wallet's purses
      * @throws if any parts of the offer can be determined synchronously to be invalid
      */
     async executeOffer(offerSpec) {
@@ -71,12 +71,14 @@ export const makeOfferExecutor = ({
         status = { ...status, ...changes };
         onStatusChange(status);
       };
+
       /**
        * Notify user and attempt to recover
        *
        * @param {Error} err
+       * @param {UserSeat<unknown>?} seatRef
        */
-      const handleError = err => {
+      const handleError = (err, seatRef) => {
         logger.error('OFFER ERROR:', err);
         updateStatus({ error: err.toString() });
         void paymentsManager.tryReclaimingWithdrawnPayments().then(result => {
@@ -84,6 +86,9 @@ export const makeOfferExecutor = ({
             updateStatus({ result });
           }
         });
+        if (seatRef) {
+          E(seatRef).tryExit();
+        }
       };
 
       const tryBody = async () => {
@@ -111,7 +116,6 @@ export const makeOfferExecutor = ({
           offerArgs,
         );
         logger.info(id, 'seated');
-        updateStatus({});
 
         // publish 'result'
         void E.when(
@@ -151,7 +155,7 @@ export const makeOfferExecutor = ({
                 updateStatus({ result: UNPUBLISHED_RESULT });
             }
           },
-          handleError,
+          e => handleError(e, seatRef),
         );
 
         // publish 'numWantsSatisfied'
@@ -166,7 +170,7 @@ export const makeOfferExecutor = ({
               numWantsSatisfied: numSatisfied,
             });
           },
-          handleError,
+          e => handleError(e, seatRef),
         );
 
         // publish 'payouts'
@@ -178,10 +182,16 @@ export const makeOfferExecutor = ({
             paymentsManager.depositPayouts(payouts).then(amountsOrDeferred => {
               updateStatus({ payouts: amountsOrDeferred });
             }),
-          handleError,
+          e => handleError(e, seatRef),
         );
+
+        return seatRef;
       };
-      await tryBody().catch(err => handleError(err));
+
+      return tryBody().catch(err => {
+        handleError(err, null);
+        return null;
+      });
     },
   };
 };

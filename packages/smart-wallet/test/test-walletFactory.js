@@ -160,4 +160,5 @@ test.todo(
   // pause the PSM trading such that there is time to exit before offer resolves
   // executeOffer to buy the junk (which can't resolve)
   // exit the offer "oh I don't want to buy junk!"
+  // Help?
 );
