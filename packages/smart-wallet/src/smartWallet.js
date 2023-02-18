@@ -476,9 +476,8 @@ export const prepareSmartWallet = (baggage, shared) => {
               });
 
               const isOfferPossiblyExitable = !(
-                'error' in offerStatus || 'numWantsSatisfied' in offerStatus
+                'numWantsSatisfied' in offerStatus
               );
-
               if (isOfferPossiblyExitable) {
                 return;
               }
