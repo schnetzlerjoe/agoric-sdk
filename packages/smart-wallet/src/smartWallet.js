@@ -124,6 +124,7 @@ const mapToRecord = map => Object.fromEntries(map.entries());
  *   purseBalances: MapStore<RemotePurse, Amount>,
  *   updatePublishKit: PublishKit<UpdateRecord>,
  *   currentPublishKit: PublishKit<CurrentWalletRecord>,
+ *   possiblyExitableOffers: MapStore<import('./offers.js').OfferId, import('./offers.js').OfferStatus>,
  * }>} ImmutableState
  *
  * @typedef {{
@@ -233,6 +234,10 @@ export const prepareSmartWallet = (baggage, shared) => {
       /** @type {PublishKit<CurrentWalletRecord>} */
       currentPublishKit,
       walletStorageNode,
+      possiblyExitableOffers: makeScalarBigMapStore(
+        'possibly exitable offers',
+        { durable: true },
+      ),
     };
 
     return {
@@ -304,12 +309,14 @@ export const prepareSmartWallet = (baggage, shared) => {
             offerToUsedInvitation,
             offerToPublicSubscriberPaths,
             purseBalances,
+            possiblyExitableOffers,
           } = this.state;
           currentPublishKit.publisher.publish({
             purses: [...purseBalances.values()].map(a => ({
               brand: a.brand,
               balance: a,
             })),
+            possiblyExitableOffers: mapToRecord(possiblyExitableOffers),
             offerToUsedInvitation: mapToRecord(offerToUsedInvitation),
             offerToPublicSubscriberPaths: mapToRecord(
               offerToPublicSubscriberPaths,
@@ -399,7 +406,7 @@ export const prepareSmartWallet = (baggage, shared) => {
          * @throws if any parts of the offer can be determined synchronously to be invalid
          */
         async executeOffer(offerSpec) {
-          const { facets } = this;
+          const { facets, state } = this;
           const {
             address,
             bank,
@@ -446,6 +453,32 @@ export const prepareSmartWallet = (baggage, shared) => {
             },
             onStatusChange: offerStatus => {
               logger.info('offerStatus', offerStatus);
+
+              const isOfferPossiblyExitable = !(
+                'error' in offerStatus || 'numWantsSatisfied' in offerStatus
+              );
+
+              if (
+                isOfferPossiblyExitable &&
+                !state.possiblyExitableOffers.has(offerStatus.id)
+              ) {
+                state.possiblyExitableOffers.init(
+                  offerStatus.id,
+                  harden(offerStatus),
+                );
+                facets.helper.publishCurrentState();
+                // Don't need to publish an update because the offer is new.
+                return;
+              }
+
+              if (
+                !isOfferPossiblyExitable &&
+                state.possiblyExitableOffers.has(offerStatus.id)
+              ) {
+                state.possiblyExitableOffers.delete(offerStatus.id);
+                facets.helper.publishCurrentState();
+              }
+
               updatePublishKit.publisher.publish({
                 updated: 'offerStatus',
                 status: offerStatus,
