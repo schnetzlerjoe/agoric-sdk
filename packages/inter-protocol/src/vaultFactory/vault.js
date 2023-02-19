@@ -464,6 +464,8 @@ export const prepareVault = (baggage, marshaller, zcf) => {
           seat.exit();
           helper.assignPhase(Phase.CLOSED);
           helper.updateDebtSnapshot(helper.emptyDebt());
+
+          // XXX causes error in 'price drop'. Is stream already closed?
           helper.updateUiState();
 
           helper.assertVaultHoldsNoMinted();

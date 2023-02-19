@@ -12,8 +12,7 @@ import { E } from '@endo/far';
 import { LienBridgeId, makeStakeReporter } from '../my-lien.js';
 import { makeReserveTerms } from '../reserve/params.js';
 import { makeStakeFactoryTerms } from '../stakeFactory/params.js';
-import { liquidationDetailTerms } from '../vaultFactory/liquidation.js';
-import { makeGovernedTerms } from '../vaultFactory/params.js';
+import { makeGovernedTerms as makeGovernedVFTerms } from '../vaultFactory/params.js';
 import { makeAmmTerms } from '../vpool-xyk-amm/params.js';
 import { makeGovernedTerms as makeGovernedATerms } from '../auction/params.js';
 
@@ -256,13 +255,13 @@ export const setupAmm = async (
   ammPublicFacet || Fail`ammPublicFacet broken  ${ammPublicFacet}`;
 
   ammGovernor.resolve(g.instance);
+  trace('setupAMM done');
   return ammInstallation;
 };
 
 /** @param {EconomyBootstrapPowers} powers */
 export const setupReserve = async ({
   consume: {
-    ammKit: ammKitP,
     board,
     feeMintAccess: feeMintAccessP,
     chainStorage,
@@ -275,11 +274,7 @@ export const setupReserve = async ({
     consume: { [Stable.symbol]: centralIssuer },
   },
   instance: {
-    produce: {
-      amm: ammInstanceProducer,
-      reserve: reserveInstanceProducer,
-      reserveGovernor,
-    },
+    produce: { reserve: reserveInstanceProducer, reserveGovernor },
   },
   installation: {
     consume: {
@@ -291,21 +286,17 @@ export const setupReserve = async ({
   const STORAGE_PATH = 'reserve';
   trace('setupReserve');
   const poserInvitationP = E(committeeCreator).getPoserInvitation();
-  const [poserInvitation, poserInvitationAmount, feeMintAccess, ammKit] =
+  const [poserInvitation, poserInvitationAmount, feeMintAccess] =
     await Promise.all([
       poserInvitationP,
       E(E(zoe).getInvitationIssuer()).getAmountOf(poserInvitationP),
       feeMintAccessP,
-      ammKitP,
     ]);
-
-  const reserveTerms = makeReserveTerms(
-    poserInvitationAmount,
-    ammKit.instanceWithoutReserve,
-  );
 
   const storageNode = await makeStorageNodeChild(chainStorage, STORAGE_PATH);
   const marshaller = await E(board).getReadonlyMarshaller();
+
+  const reserveTerms = makeReserveTerms(poserInvitationAmount);
 
   const reserveGovernorTerms = await deeplyFulfilledObject(
     harden({
@@ -351,14 +342,6 @@ export const setupReserve = async ({
   reserveInstanceProducer.resolve(instance);
   reserveGovernor.resolve(g.instance);
 
-  // AMM requires Reserve in order to add pools, but we can't provide it at startInstance
-  // time because Reserve requires AMM itself in order to be started.
-  // Now that we have the reserve, provide it to the AMM.
-  trace('Resolving the reserve public facet on the AMM');
-  await E(ammKit.creatorFacet).resolveReserveFacet(publicFacet);
-  // it now has the reserve
-  ammInstanceProducer.resolve(ammKit.instanceWithoutReserve);
-
   return reserveInstallation;
 };
 
@@ -386,16 +369,11 @@ export const startVaultFactory = async (
     },
     instance: {
       produce: instanceProduce,
-      consume: {
-        amm: ammInstance,
-        auction: auctionInstance,
-        reserve: reserveInstance,
-      },
+      consume: { auction: auctionInstance, reserve: reserveInstance },
     },
     installation: {
       consume: {
         VaultFactory: vaultFactoryInstallation,
-        liquidate: liquidateInstallationP,
         contractGovernor: contractGovernorInstallation,
       },
     },
@@ -420,36 +398,30 @@ export const startVaultFactory = async (
     poserInvitationAmount,
     initialShortfallInvitation,
     shortfallInvitationAmount,
-    liquidateInstallation,
     feeMintAccess,
   ] = await Promise.all([
     poserInvitationP,
     E(E(zoe).getInvitationIssuer()).getAmountOf(poserInvitationP),
     shortfallInvitationP,
     E(E(zoe).getInvitationIssuer()).getAmountOf(shortfallInvitationP),
-    liquidateInstallationP,
     feeMintAccessP,
   ]);
 
   const centralBrand = await centralBrandP;
 
-  const ammPublicFacet = await E(zoe).getPublicFacet(ammInstance);
   const reservePublicFacet = await E(zoe).getPublicFacet(reserveInstance);
   const auctionPublicFacet = await E(zoe).getPublicFacet(auctionInstance);
   const storageNode = await makeStorageNodeChild(chainStorage, STORAGE_PATH);
   const marshaller = await E(board).getReadonlyMarshaller();
 
-  const vaultFactoryTerms = makeGovernedTerms(
+  const vaultFactoryTerms = makeGovernedVFTerms(
     { storageNode, marshaller },
     {
       priceAuthority,
       reservePublicFacet,
       loanTiming: loanParams,
-      liquidationInstall: liquidateInstallation,
       timer: chainTimerService,
       electorateInvitationAmount: poserInvitationAmount,
-      ammPublicFacet,
-      liquidationTerms: liquidationDetailTerms(centralBrand),
       minInitialDebt: AmountMath.make(centralBrand, minInitialDebt),
       bootstrapPaymentValue: 0n,
       shortfallInvitationAmount,
@@ -551,7 +523,7 @@ export const startRewardDistributor = async ({
     bankManager,
     vaultFactoryKit,
     periodicFeeCollectors,
-    ammKit,
+    // ammKit,
     stakeFactoryKit,
     reserveKit,
     zoe,
@@ -631,7 +603,7 @@ export const startRewardDistributor = async ({
 
   const collectorKit = {
     vaultFactory: E.get(vaultFactoryKit).creatorFacet,
-    amm: E.get(ammKit).creatorFacet,
+    // amm: E.get(ammKit).creatorFacet,
     runStake: E.get(stakeFactoryKit).creatorFacet,
   };
   await Promise.all(
@@ -834,7 +806,7 @@ export const startStakeFactory = async (
       },
     },
     instance: {
-      produce: { stakeFactory: stakeFactoryinstanceR },
+      produce: { stakeFactory: stakeFactoryInstanceR },
     },
     brand: {
       consume: { [Stake.symbol]: bldBrandP, [Stable.symbol]: runBrandP },
@@ -939,7 +911,7 @@ export const startStakeFactory = async (
     }),
   );
 
-  stakeFactoryinstanceR.resolve(governedInstance);
+  stakeFactoryInstanceR.resolve(governedInstance);
   attestationBrandR.resolve(attBrand);
   attestationIssuerR.resolve(attIssuer);
   return Promise.all([

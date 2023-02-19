@@ -53,6 +53,8 @@
  * @property {() => Instance} getContractGovernor
  * @property {() => Promise<Invitation>} makeCollectFeesInvitation
  * @property {() => void} updateMetrics
+ * @property {() => import('@agoric/time/src/types').TimerWaker} makeLiquidationWaker
+ * @property {() => import('@agoric/time/src/types').TimerWaker} makePriceLockWaker
  */
 
 /**

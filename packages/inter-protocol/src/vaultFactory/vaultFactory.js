@@ -22,16 +22,13 @@ import { makeStoredPublisherKit } from '@agoric/notifier';
 import { assertAllDefined } from '@agoric/internal';
 import {
   makeVaultDirectorParamManager,
-  LIQUIDATION_INSTALL_KEY,
-  LIQUIDATION_TERMS_KEY,
   MIN_INITIAL_DEBT_KEY,
 } from './params.js';
 import { prepareVaultDirector } from './vaultDirector.js';
 
 /**
  * @typedef {ZCF<GovernanceTerms<import('./params').VaultDirectorParams> & {
- *   ammPublicFacet: AutoswapPublicFacet,
- *   liquidationInstall: Installation<import('./liquidateMinimum.js').start>,
+ *   auctionPublicFacet: import('../auction/auctioneer.js').AuctioneerPublicFacet,
  *   loanTimingParams: {ChargingPeriod: ParamValueTyped<'nat'>, RecordingPeriod: ParamValueTyped<'nat'>},
  *   minInitialDebt: Amount,
  *   priceAuthority: ERef<PriceAuthority>,
@@ -72,9 +69,8 @@ export const start = async (zcf, privateArgs, baggage) => {
     mintedIssuerRecord: debtMint.getIssuerRecord(),
   }));
 
+  const { timerService, auctionPublicFacet } = zcf.getTerms();
   const {
-    [LIQUIDATION_INSTALL_KEY]: { value: liqInstall },
-    [LIQUIDATION_TERMS_KEY]: { value: liqTerms },
     [MIN_INITIAL_DEBT_KEY]: { value: minInitialDebt },
   } = zcf.getTerms().governedParams;
   /** a powerful object; can modify the invitation */
@@ -82,8 +78,6 @@ export const start = async (zcf, privateArgs, baggage) => {
     makeStoredPublisherKit(storageNode, marshaller, 'governance'),
     zcf.getZoeService(),
     initialPoserInvitation,
-    liqInstall,
-    liqTerms,
     minInitialDebt,
     initialShortfallInvitation,
   );
@@ -98,6 +92,8 @@ export const start = async (zcf, privateArgs, baggage) => {
     zcf,
     vaultDirectorParamManager,
     debtMint,
+    timerService,
+    auctionPublicFacet,
     storageNode,
     marshaller,
   );

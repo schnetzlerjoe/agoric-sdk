@@ -4,8 +4,6 @@ import { makeRatio } from '@agoric/zoe/src/contractSupport/index.js';
 
 import buildManualTimer from '@agoric/zoe/tools/manualTimer.js';
 import { makeGovernedTerms as makeVaultFactoryTerms } from '../../src/vaultFactory/params.js';
-import { ammMock } from './mockAmm.js';
-import { liquidationDetailTerms } from '../../src/vaultFactory/liquidation.js';
 
 const ONE_DAY = 24n * 60n * 60n;
 const SECONDS_PER_HOUR = 60n * 60n;
@@ -26,17 +24,14 @@ const setupBasicMints = () => {
 };
 
 const installContracts = async (zoe, cb) => {
-  const [liquidateMinimum, vaultFactory, electorate, counter, governor] =
-    await Promise.all([
-      E(zoe).install(cb.liquidateMinimum),
-      E(zoe).install(cb.vaultFactory),
-      E(zoe).install(cb.committee),
-      E(zoe).install(cb.binaryVoteCounter),
-      E(zoe).install(cb.contractGovernor),
-    ]);
+  const [vaultFactory, electorate, counter, governor] = await Promise.all([
+    E(zoe).install(cb.vaultFactory),
+    E(zoe).install(cb.committee),
+    E(zoe).install(cb.binaryVoteCounter),
+    E(zoe).install(cb.contractGovernor),
+  ]);
 
   const installations = {
-    liquidateMinimum,
     vaultFactory,
     electorate,
     counter,
@@ -213,11 +208,8 @@ const buildOwner = async (
     {
       priceAuthority: priceAuthorityKit.priceAuthority,
       loanTiming,
-      liquidationInstall: installations.liquidateMinimum,
       timer,
       electorateInvitationAmount: poserInvitationAmount,
-      ammPublicFacet: ammMock,
-      liquidationTerms: liquidationDetailTerms(runBrand),
       minInitialDebt: AmountMath.make(runBrand, 100n),
       bootstrapPaymentValue: 0n,
       reservePublicFacet,

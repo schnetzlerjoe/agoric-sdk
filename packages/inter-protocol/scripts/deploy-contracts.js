@@ -12,7 +12,6 @@ const contractRefs = [
   '../bundles/bundle-stakeFactory.js',
   '../bundles/bundle-amm.js',
   '../bundles/bundle-vaultFactory.js',
-  '../bundles/bundle-liquidateMinimum.js',
   '../bundles/bundle-reserve.js',
   '../bundles/bundle-psm.js',
   '../bundles/bundle-auctioneer.js',

@@ -17,13 +17,11 @@ const DISPLAY_INFO = harden({ decimalPlaces: 6 });
  * @param {ZCF} zcf
  * @param {(Brand) => boolean} isInSecondaries
  * @param {import('@agoric/store/src/stores/store-utils.js').AtomicProvider<Brand<'nat'>, ZCFMint<'nat'>>} brandToLiquidityMintProvider
- * @param {() => (secondaryBrand: Brand<'nat'>) => Promise<void>} getAddIssuerToReserve
  */
 export const makeAddIssuer = (
   zcf,
   isInSecondaries,
   brandToLiquidityMintProvider,
-  getAddIssuerToReserve,
 ) => {
   /**
    * Add a new issuer. If we previously received a request for the same issuer,
@@ -69,19 +67,8 @@ export const makeAddIssuer = (
       });
     };
 
-    /** @type {(brand: Brand<'nat'>) => Promise<void>} */
-    const finish = brand => {
-      // defer lookup until necessary. more aligned with governed
-      // param we expect this to be eventually.
-      const addIssuerToReserve = getAddIssuerToReserve();
-
-      // tell the reserve about this brand, which it will validate by
-      // calling back to AMM for the issuer
-      return addIssuerToReserve(brand);
-    };
-
     return brandToLiquidityMintProvider
-      .provideAsync(secondaryBrand, makeLiquidityMint, finish)
+      .provideAsync(secondaryBrand, makeLiquidityMint)
       .then(mint => mint.getIssuerRecord().issuer);
   };
 

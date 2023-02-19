@@ -13,24 +13,6 @@ export * from './startEconCommittee.js'; // eslint-disable-line import/export
 /** @type {import('@agoric/vats/src/core/manifest.js').BootstrapManifest} */
 const SHARED_MAIN_MANIFEST = harden({
   /** @type {import('@agoric/vats/src/core/manifest.js').BootstrapManifestPermit} */
-  [econBehaviors.setupAmm.name]: {
-    consume: {
-      board: 'board',
-      chainStorage: true,
-      chainTimerService: 'timer',
-      zoe: 'zoe',
-      economicCommitteeCreatorFacet: 'economicCommittee',
-    },
-    produce: { ammKit: 'amm' },
-    issuer: { consume: { [Stable.symbol]: 'zoe' } },
-    brand: { consume: { [Stable.symbol]: 'zoe' } },
-    installation: {
-      consume: { contractGovernor: 'zoe', amm: 'zoe' },
-    },
-    instance: {
-      produce: { ammGovernor: 'ammGovernor' },
-    },
-  },
   [econBehaviors.startInterchainPool.name]: {
     consume: { bankManager: 'bank', zoe: 'zoe', agoricNamesAdmin: true },
     installation: {
@@ -66,12 +48,10 @@ const SHARED_MAIN_MANIFEST = harden({
       consume: {
         contractGovernor: 'zoe',
         VaultFactory: 'zoe',
-        liquidate: 'zoe',
       },
     },
     instance: {
       consume: {
-        amm: 'amm',
         reserve: 'reserve',
         auction: 'auction',
       },
@@ -92,7 +72,7 @@ const SHARED_MAIN_MANIFEST = harden({
 
   [econBehaviors.setupReserve.name]: {
     consume: {
-      ammKit: 'amm',
+      // ammKit: 'amm',
       board: 'board',
       chainStorage: true,
       feeMintAccess: 'zoe',
@@ -146,7 +126,7 @@ const REWARD_MANIFEST = harden({
       bankManager: true,
       vaultFactoryKit: true,
       periodicFeeCollectors: true,
-      ammKit: true,
+      // ammKit: true,
       stakeFactoryKit: true,
       reserveKit: true,
       zoe: true,
@@ -252,11 +232,9 @@ export const getManifestForMain = (
   return {
     manifest: SHARED_MAIN_MANIFEST,
     installations: {
-      amm: restoreRef(installKeys.amm),
       VaultFactory: restoreRef(installKeys.vaultFactory),
       auction: restoreRef(installKeys.auction),
       feeDistributor: restoreRef(installKeys.feeDistributor),
-      liquidate: restoreRef(installKeys.liquidate),
       reserve: restoreRef(installKeys.reserve),
       interchainPool: restoreRef(installKeys.interchainPool),
     },

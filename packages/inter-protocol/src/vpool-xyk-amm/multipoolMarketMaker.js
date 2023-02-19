@@ -263,7 +263,9 @@ const start = async (zcf, privateArgs, baggage) => {
       secondaryBrand,
       secondaryIssuer,
     });
-    await E(reserveFacet).addLiquidityIssuer(secondaryIssuer);
+
+    // XXX removed when the vaults release sw
+    // await E(reserveFacet).addLiquidityIssuer(secondaryIssuer);
 
     trace(
       `move ${liquidityKeyword} to the reserve`,
@@ -343,13 +345,6 @@ const start = async (zcf, privateArgs, baggage) => {
     zcf,
     isSecondary,
     secondaryBrandToLiquidityMintProvider,
-    () => {
-      assert(reserveFacet, 'Must first resolveReserveFacet');
-      return secondaryBrand =>
-        E(
-          /** @type {AssetReservePublicFacet} */ (reserveFacet),
-        ).addIssuerFromAmm(secondaryBrand);
-    },
   );
 
   /**
