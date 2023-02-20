@@ -1,0 +1,50 @@
+#! /bin/bash
+# bin/agd - A simple build wrapper to bootstrap the Agoric daemon
+set -ueo pipefail
+
+real0=$(readlink "${BASH_SOURCE[0]}" || echo "${BASH_SOURCE[0]}")
+thisdir=$(cd "$(dirname -- "$real0")" >/dev/null && pwd -P)
+
+STAMPS="$thisdir/../node_modules/.cache/agoric"
+
+if test "${1-''}" = build; then
+  BUILD_ONLY=true
+  case "${2-''}" in
+  --force | -f)
+    rm -rf "$STAMPS"
+    ;;
+  esac
+else
+  BUILD_ONLY=false
+fi
+
+(
+  cd "$thisdir/.."
+
+  mkdir -p "$STAMPS"
+
+  test -f "$STAMPS/yarn-installed" || {
+    rm -f "$STAMPS/yarn-built"
+    yarn install --force
+    date > "$STAMPS/yarn-installed"
+  }
+
+  test -f "$STAMPS/yarn-built" || {
+    yarn build
+    date > "$STAMPS/yarn-built"
+  }
+
+  test -f "$STAMPS/agd-built" || {
+    (cd golang/cosmos && make)
+    date > "$STAMPS/agd-built"
+  }
+)
+
+if $BUILD_ONLY; then
+  echo "Build complete." 1>&2
+  exit 0
+fi
+
+# Run the built Cosmos daemon.
+export PATH="$thisdir/../packages/cosmic-swingset/bin:$PATH"
+exec "$thisdir/../golang/cosmos/build/agd" ${1+"$@"}
