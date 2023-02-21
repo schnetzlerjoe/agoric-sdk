@@ -94,6 +94,10 @@ export function exportMailbox(inout) {
   };
 }
 
+/**
+ *
+ * @param {Map<*, *>} state
+ */
 export function buildMailboxStateMap(state = harden(new Map())) {
   function getOrCreatePeer(peer) {
     if (!state.has(peer)) {

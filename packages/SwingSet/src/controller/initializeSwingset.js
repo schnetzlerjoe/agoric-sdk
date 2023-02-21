@@ -3,14 +3,17 @@ import fs from 'fs';
 import path from 'path';
 
 import { resolve as resolveModuleSpecifier } from 'import-meta-resolve';
-import { assert, Fail } from '@agoric/assert';
+import { assert, Fail, q } from '@agoric/assert';
 import { getLockdownBundle } from '@agoric/xsnap-lockdown';
 import bundleSource from '@endo/bundle-source';
 
 import '../types-ambient.js';
+import { makeTracer } from '@agoric/internal';
 import { insistStorageAPI } from '../lib/storageAPI.js';
 import { initializeKernel } from './initializeKernel.js';
 import { kdebugEnable } from '../lib/kdebug.js';
+
+const trace = makeTracer('IniSwi', false);
 
 /**
  * @param {X[]} xs
@@ -79,6 +82,7 @@ export async function buildVatAndDeviceBundles() {
 // runtimeOptions.kernelBundles, which will pass it through to both.
 
 export async function buildKernelBundles() {
+  trace('buildKernelBundles');
   const bp = buildVatAndDeviceBundles();
   const kp = buildKernelBundle();
   const [vdBundles, kernelBundle] = await Promise.all([bp, kp]);
@@ -415,6 +419,13 @@ export async function initializeSwingset(
   // kconfig.idToBundle.BUNDLEID=bundle
 
   async function getBundle(desc, mode, nameToBundle) {
+    trace(
+      'getBundle',
+      mode,
+      Object.keys(desc),
+      desc.moduleFormat,
+      desc.endoZipBase64Sha512,
+    );
     if (mode === 'bundle') {
       return desc.bundle;
     } else if (mode === 'bundleSpec') {
@@ -434,8 +445,11 @@ export async function initializeSwingset(
   }
 
   // fires with BundleWithID: { ...bundle, id }
+  /**
+   * @param {EndoZipBase64Bundle & {id?: string}} bundle
+   */
   async function addBundleID(bundle) {
-    if (bundle.id) {
+    if ('id' in bundle) {
       // during config, we believe bundle.id, but not at runtime!
       return bundle;
     }
@@ -459,6 +473,15 @@ export async function initializeSwingset(
     return getBundle(desc, mode, nameToBundle)
       .then(addBundleID)
       .then(bundleWithID => {
+        const emptyBundleSize = 11320;
+        const thisBundleSize = bundleWithID.endoZipBase64.length;
+        if (thisBundleSize < emptyBundleSize * 2) {
+          console.warn(
+            `suspiciously small bundle size ${q(thisBundleSize)} in ${q(
+              desc,
+            )} (${q(mode)})`,
+          );
+        }
         // replace original .sourceSpec/etc with a uniform .bundleID
         delete desc[mode];
         desc.bundleID = bundleWithID.id;
