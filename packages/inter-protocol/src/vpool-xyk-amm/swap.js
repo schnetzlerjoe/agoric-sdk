@@ -1,7 +1,15 @@
-import { assertProposalShape } from '@agoric/zoe/src/contractSupport/index.js';
-
 import '@agoric/zoe/exported.js';
-import { AmountMath } from '@agoric/ertp';
+import { AmountMath, AmountShape } from '@agoric/ertp';
+import { M } from '@agoric/store';
+
+const SwapProposalShape = M.splitRecord({
+  give: {
+    In: AmountShape,
+  },
+  want: {
+    Out: AmountShape,
+  },
+});
 
 /**
  * @param {ZCF} zcf
@@ -15,10 +23,6 @@ export const makeMakeSwapInvitation = (zcf, provideVPool) => {
    * @param {{ stopAfter: Amount }} args
    */
   const swapIn = (seat, args) => {
-    assertProposalShape(seat, {
-      give: { In: null },
-      want: { Out: null },
-    });
     const {
       give: { In: amountIn },
       want: { Out: amountOut },
@@ -45,10 +49,6 @@ export const makeMakeSwapInvitation = (zcf, provideVPool) => {
 
   // trade with a stated amount out.
   const swapOut = seat => {
-    assertProposalShape(seat, {
-      give: { In: null },
-      want: { Out: null },
-    });
     const {
       give: { In: amountIn },
       want: { Out: amountOut },
@@ -59,10 +59,15 @@ export const makeMakeSwapInvitation = (zcf, provideVPool) => {
   };
 
   const makeSwapInInvitation = () =>
-    zcf.makeInvitation(swapIn, 'autoswap swapIn');
+    zcf.makeInvitation(swapIn, 'autoswap swapIn', undefined, SwapProposalShape);
 
   const makeSwapOutInvitation = () =>
-    zcf.makeInvitation(swapOut, 'autoswap swapOut');
+    zcf.makeInvitation(
+      swapOut,
+      'autoswap swapOut',
+      undefined,
+      SwapProposalShape,
+    );
 
   return { makeSwapInInvitation, makeSwapOutInvitation };
 };

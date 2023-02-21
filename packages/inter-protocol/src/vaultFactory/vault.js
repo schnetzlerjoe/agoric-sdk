@@ -3,13 +3,12 @@ import { makeTracer } from '@agoric/internal';
 import { StorageNodeShape } from '@agoric/notifier/src/typeGuards.js';
 import { M, prepareExoClassKit } from '@agoric/vat-data';
 import {
-  assertProposalShape,
   atomicTransfer,
   floorMultiplyBy,
   makeRatioFromAmounts,
 } from '@agoric/zoe/src/contractSupport/index.js';
 import { SeatShape } from '@agoric/zoe/src/typeGuards.js';
-import { addSubtract, allEmpty, assertOnlyKeys } from '../contractSupport.js';
+import { addSubtract, allEmpty } from '../contractSupport.js';
 import { calculateCurrentDebt, reverseInterest } from '../interest-math.js';
 import { UnguardedHelperI } from '../typeGuards.js';
 import { prepareVaultKit } from './vaultKit.js';
@@ -179,6 +178,30 @@ export const VaultI = M.interface('Vault', {
 export const prepareVault = (baggage, marshaller, zcf) => {
   const makeVaultKit = prepareVaultKit(baggage, marshaller);
 
+  const AdjustBalancesProposalShape = M.splitRecord({
+    give: M.splitRecord(
+      {},
+      {
+        Collateral: AmountShape, // TODO brand specific AmountShape
+        Minted: AmountShape, // TODO brand specific AmountShape
+      },
+    ),
+    want: M.splitRecord(
+      {},
+      {
+        Collateral: AmountShape, // TODO brand specific AmountShape
+        Minted: AmountShape, // TODO brand specific AmountShape
+      },
+    ),
+  });
+
+  const CloseProposalShape = M.splitRecord({
+    give: {
+      Minted: AmountShape, // TODO brand specific AmountShape
+    },
+    want: {},
+  });
+
   const maker = prepareExoClassKit(
     baggage,
     'Vault',
@@ -237,7 +260,6 @@ export const prepareVault = (baggage, marshaller, zcf) => {
          * @returns {FullProposal}
          */
         fullProposal(partial) {
-          assertOnlyKeys(partial, ['Collateral', 'Minted']);
           return {
             give: {
               Collateral:
@@ -418,10 +440,6 @@ export const prepareVault = (baggage, marshaller, zcf) => {
           const oldCollateral = self.getCollateralAmount();
 
           if (phase === Phase.ACTIVE) {
-            assertProposalShape(seat, {
-              give: { Minted: null },
-            });
-
             // you're paying off the debt, you get everything back.
             const debt = self.getCurrentDebt();
             const {
@@ -780,6 +798,8 @@ export const prepareVault = (baggage, marshaller, zcf) => {
           return zcf.makeInvitation(
             seat => helper.adjustBalancesHook(seat),
             state.manager.scopeDescription('AdjustBalances'),
+            undefined,
+            AdjustBalancesProposalShape,
           );
         },
 
@@ -790,6 +810,8 @@ export const prepareVault = (baggage, marshaller, zcf) => {
           return zcf.makeInvitation(
             seat => helper.closeHook(seat),
             state.manager.scopeDescription('CloseVault'),
+            undefined,
+            CloseProposalShape,
           );
         },
 

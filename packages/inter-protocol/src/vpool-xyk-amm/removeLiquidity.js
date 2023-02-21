@@ -1,6 +1,6 @@
-import { assertProposalShape } from '@agoric/zoe/src/contractSupport/index.js';
-
 import '@agoric/zoe/exported.js';
+import { M } from '@agoric/store';
+import { AmountShape } from '@agoric/ertp';
 
 /**
  * @param {ZCF} zcf
@@ -8,22 +8,28 @@ import '@agoric/zoe/exported.js';
  */
 export const makeMakeRemoveLiquidityInvitation = (zcf, getPool) => {
   const removeLiquidity = seat => {
-    assertProposalShape(seat, {
-      want: {
-        Central: null,
-        Secondary: null,
-      },
-      give: {
-        Liquidity: null,
-      },
-    });
     // Get the brand of the secondary token so we can identify the liquidity pool.
     const secondaryBrand = seat.getProposal().want.Secondary.brand;
     const pool = getPool(secondaryBrand);
     return pool.removeLiquidity(seat);
   };
 
+  const RemoveLiquidityProposalShape = M.splitRecord({
+    want: {
+      Central: AmountShape, // TODO brand specific AmountShape
+      Secondary: AmountShape, // TODO brand specific AmountShape
+    },
+    give: {
+      Liquidity: AmountShape, // TODO brand specific AmountShape
+    },
+  });
+
   const makeRemoveLiquidityInvitation = () =>
-    zcf.makeInvitation(removeLiquidity, 'autoswap remove liquidity');
+    zcf.makeInvitation(
+      removeLiquidity,
+      'autoswap remove liquidity',
+      undefined,
+      RemoveLiquidityProposalShape,
+    );
   return makeRemoveLiquidityInvitation;
 };

@@ -1,11 +1,11 @@
 import {
-  assertProposalShape,
   calcSecondaryRequired,
   natSafeMath,
 } from '@agoric/zoe/src/contractSupport/index.js';
-import { AmountMath } from '@agoric/ertp';
+import { AmountMath, AmountShape } from '@agoric/ertp';
 
 import '@agoric/zoe/exported.js';
+import { M } from '@agoric/store';
 
 const { Fail, quote: q } = assert;
 
@@ -16,13 +16,6 @@ const { add, multiply } = natSafeMath;
  */
 const makeMakeAddLiquidityInvitation = (zcf, getPool) => {
   const addLiquidity = seat => {
-    assertProposalShape(seat, {
-      give: {
-        Central: null,
-        Secondary: null,
-      },
-    });
-
     // Get the brand of the secondary token so we can identify the liquidity pool.
     const secondaryBrand = seat.getProposal().give.Secondary.brand;
     const pool = getPool(secondaryBrand);
@@ -34,8 +27,21 @@ const makeMakeAddLiquidityInvitation = (zcf, getPool) => {
     return pool.addLiquidity(seat);
   };
 
+  const AddLiquidityProposalShape = M.splitRecord({
+    give: {
+      Central: AmountShape, // TODO brand specific AmountShape
+      Secondary: AmountShape, // TODO brand specific AmountShape
+    },
+    want: {},
+  });
+
   const makeAddLiquidityInvitation = () =>
-    zcf.makeInvitation(addLiquidity, 'multipool amm add liquidity');
+    zcf.makeInvitation(
+      addLiquidity,
+      'multipool amm add liquidity',
+      undefined,
+      AddLiquidityProposalShape,
+    );
 
   return makeAddLiquidityInvitation;
 };
@@ -122,14 +128,6 @@ const makeMakeAddLiquidityAtRateInvitation = (
   getPoolHelper,
 ) => {
   const addLiquidityAtRate = seat => {
-    assertProposalShape(seat, {
-      give: {
-        Central: null,
-        Secondary: null,
-      },
-      want: { Liquidity: null },
-    });
-
     const giveAlloc = seat.getProposal().give;
     /** @type {Amount<'nat'>} */
     const secondaryAmount = giveAlloc.Secondary;
@@ -206,10 +204,22 @@ const makeMakeAddLiquidityAtRateInvitation = (
     );
   };
 
+  const AddLiquidityAtProposalShape = M.splitRecord({
+    give: {
+      Central: AmountShape, // TODO brand specific AmountShape
+      Secondary: AmountShape, // TODO brand specific AmountShape
+    },
+    want: {
+      Liquidity: AmountShape, // TODO brand specific AmountShape
+    },
+  });
+
   const makeAddLiquidityInvitation = () =>
     zcf.makeInvitation(
       addLiquidityAtRate,
       'multipool amm add liquidity at rate',
+      undefined,
+      AddLiquidityAtProposalShape,
     );
 
   return makeAddLiquidityInvitation;

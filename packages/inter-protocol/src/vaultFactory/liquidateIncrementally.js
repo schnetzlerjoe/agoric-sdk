@@ -2,16 +2,16 @@
 import { E } from '@endo/eventual-send';
 import {
   getAmountOut,
-  assertProposalShape,
   offerTo,
   natSafeMath as NatMath,
   ceilMultiplyBy,
   oneMinus,
   atomicTransfer,
 } from '@agoric/zoe/src/contractSupport/index.js';
-import { AmountMath } from '@agoric/ertp';
+import { AmountMath, AmountShape } from '@agoric/ertp';
 import { Far } from '@endo/marshal';
 import { forever, makeTracer } from '@agoric/internal';
+import { M } from '@agoric/store';
 
 const { Fail } = assert;
 const trace = makeTracer('LiqI', false);
@@ -285,9 +285,6 @@ const start = async zcf => {
     debtorSeat,
     { debt: originalDebt, penaltyRate },
   ) => {
-    assertProposalShape(debtorSeat, {
-      give: { In: null },
-    });
     originalDebt.brand === debtBrand ||
       Fail`Cannot liquidate to ${originalDebt.brand}`;
     const penalty = ceilMultiplyBy(originalDebt, penaltyRate);
@@ -336,12 +333,24 @@ const start = async zcf => {
     );
   };
 
+  const LiquidateProposalShape = M.splitRecord({
+    give: {
+      In: AmountShape, // TODO brand-specific AmountShape
+    },
+    want: {},
+  });
+
   /**
    * @type {ERef<Liquidator>}
    */
   const creatorFacet = Far('debtorInvitationCreator (incrementally)', {
     makeLiquidateInvitation: () =>
-      zcf.makeInvitation(handleLiquidateOffer, 'Liquidate'),
+      zcf.makeInvitation(
+        handleLiquidateOffer,
+        'Liquidate',
+        undefined,
+        LiquidateProposalShape,
+      ),
   });
 
   return harden({ creatorFacet });

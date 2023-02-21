@@ -3,6 +3,7 @@ import { makeScalarMapStore, makeExo, M } from '@agoric/store';
 import { natSafeMath } from '@agoric/zoe/src/contractSupport/index.js';
 import { E } from '@endo/eventual-send';
 
+import { EmptyProposalShape } from '@agoric/zoe/src/typeGuards.js';
 import { makeHandle } from '@agoric/zoe/src/makeHandle.js';
 import {
   getOpenQuestions,
@@ -93,7 +94,12 @@ const start = (zcf, privateArgs) => {
               return E(voteCap).submitVote(voterHandle, positions, 1n);
             };
 
-            return zcf.makeInvitation(continuingVoteHandler, 'vote');
+            return zcf.makeInvitation(
+              continuingVoteHandler,
+              'vote',
+              undefined,
+              EmptyProposalShape,
+            );
           },
         }),
       });
@@ -103,7 +109,12 @@ const start = (zcf, privateArgs) => {
     // This will produce unique descriptions because
     // makeCommitteeVoterInvitation() is only called within the following loop,
     // which is only called once per Electorate.
-    return zcf.makeInvitation(offerHandler, `Voter${index}`);
+    return zcf.makeInvitation(
+      offerHandler,
+      `Voter${index}`,
+      undefined,
+      EmptyProposalShape,
+    );
   };
 
   const { committeeName, committeeSize } = zcf.getTerms();

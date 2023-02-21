@@ -1,3 +1,4 @@
+import { EmptyProposalShape } from '@agoric/zoe/src/typeGuards.js';
 import { E } from '@endo/eventual-send';
 import { deeplyFulfilled, Far } from '@endo/marshal';
 
@@ -86,7 +87,12 @@ const getQuestion = (questionHandleP, questionStore) =>
  */
 const getPoserInvitation = (zcf, addQuestion) => {
   const questionPoserHandler = () => Far(`questionPoser`, { addQuestion });
-  return zcf.makeInvitation(questionPoserHandler, `questionPoser`);
+  return zcf.makeInvitation(
+    questionPoserHandler,
+    `questionPoser`,
+    undefined,
+    EmptyProposalShape,
+  );
 };
 
 harden(startCounter);

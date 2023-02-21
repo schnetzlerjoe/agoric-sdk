@@ -1,9 +1,7 @@
 import { E } from '@endo/eventual-send';
-import { AmountMath, AssetKind } from '@agoric/ertp';
-import {
-  assertProposalShape,
-  atomicTransfer,
-} from '@agoric/zoe/src/contractSupport/index.js';
+import { AmountMath, AmountShape, AssetKind } from '@agoric/ertp';
+import { atomicTransfer } from '@agoric/zoe/src/contractSupport/index.js';
+import { M } from '@agoric/store';
 
 import { definePoolKind } from './pool.js';
 
@@ -119,10 +117,6 @@ export const makeAddPoolInvitation = (
 
   /** @param {ZCFSeat} seat */
   const handleAddPoolOffer = async seat => {
-    assertProposalShape(seat, {
-      give: { Central: null, Secondary: null },
-    });
-
     const {
       give: { Central: centralAmount, Secondary: secondaryAmount },
       want: proposalWant,
@@ -196,5 +190,19 @@ export const makeAddPoolInvitation = (
     return 'Added liquidity.';
   };
 
-  return () => zcf.makeInvitation(handleAddPoolOffer, 'Add Pool and Liquidity');
+  const AddPoolProposalShape = M.splitRecord({
+    give: {
+      Central: AmountShape, // TODO brand specific AmountShape
+      Secondary: AmountShape, // TODO brand specific AmountShape
+    },
+    want: {},
+  });
+
+  return () =>
+    zcf.makeInvitation(
+      handleAddPoolOffer,
+      'Add Pool and Liquidity',
+      undefined,
+      AddPoolProposalShape,
+    );
 };

@@ -38,7 +38,6 @@ import {
   provideDurableSetStore,
 } from '@agoric/vat-data';
 import {
-  assertProposalShape,
   atomicTransfer,
   ceilDivideBy,
   getAmountIn,
@@ -253,6 +252,15 @@ export const prepareVaultManagerKit = (
     };
   };
 
+  const MakeVaultProposalShape = M.splitRecord({
+    give: {
+      Collateral: AmountShape, // TODO brand specific AmountShape
+    },
+    want: {
+      Minted: AmountShape, // TODO brand specific AmountShape
+    },
+  });
+
   // TODO find a way to not have to indent a level deeper than defineDurableExoClassKit does
   return prepareExoClassKit(
     baggage,
@@ -314,6 +322,8 @@ export const prepareVaultManagerKit = (
           return zcf.makeInvitation(
             seat => this.facets.self.makeVaultKit(seat),
             facets.manager.scopeDescription('MakeVault'),
+            undefined,
+            MakeVaultProposalShape,
           );
         },
         /** @deprecated use getPublicTopics */
@@ -805,10 +815,6 @@ export const prepareVaultManagerKit = (
           assert(marshaller, 'makeVaultKit missing marshaller');
           assert(storageNode, 'makeVaultKit missing storageNode');
           assert(zcf, 'makeVaultKit missing zcf');
-          assertProposalShape(seat, {
-            give: { Collateral: null },
-            want: { Minted: null },
-          });
 
           const vaultId = String(state.vaultCounter);
 

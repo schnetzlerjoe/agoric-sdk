@@ -9,7 +9,6 @@ import {
   makeScalarMapStore,
   provideLazy,
 } from '@agoric/store';
-import { assertProposalShape } from '@agoric/zoe/src/contractSupport/index.js';
 import { AttKW as KW } from './constants.js';
 import { makeAttestationTool } from './attestationTool.js';
 
@@ -167,11 +166,6 @@ const makeAttestationIssuerKit = async (zcf, stakeBrand, lienBridge) => {
 
   /** @param {ZCFSeat} seat */
   const returnAttestation = async seat => {
-    assertProposalShape(seat, {
-      give: { [KW.Attestation]: null },
-      want: {},
-    });
-
     const {
       give: { [KW.Attestation]: attestationAmount },
     } = seat.getProposal();
@@ -241,12 +235,24 @@ export const makeAttestationFacets = async (zcf, stakeBrand, lienBridge) => {
     lienBridge,
   );
 
+  const ReturnAttProposalShape = M.splitRecord({
+    give: {
+      [KW.Attestation]: brand.getAmountShape(),
+    },
+    want: {},
+  });
+
   return harden({
     publicFacet: Far('attestation publicFacet', {
       getIssuer: () => issuer,
       getBrand: () => brand,
       makeReturnAttInvitation: () =>
-        zcf.makeInvitation(lienMint.returnAttestation, 'returnAttestation'),
+        zcf.makeInvitation(
+          lienMint.returnAttestation,
+          'returnAttestation',
+          undefined,
+          ReturnAttProposalShape,
+        ),
     }),
     creatorFacet: Far('creator', {
       /**
