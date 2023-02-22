@@ -11,6 +11,8 @@ import {
 import * as secondPriceLogic from './secondPriceLogic.js';
 import * as firstPriceLogic from './firstPriceLogic.js';
 import { assertBidSeat } from './assertBidSeat.js';
+import { M } from '@agoric/store';
+import { AmountShape } from '@agoric/ertp';
 
 const { Fail } = assert;
 
@@ -114,15 +116,33 @@ const start = zcf => {
     });
   };
 
+  const BidProposalShape = M.splitRecord({
+    give: {
+      Bid: AmountShape, // TODO brand specific AmountShape
+    },
+    want: {
+      Asset: AmountShape, // TODO brand specific AmountShape
+    },
+  });
+
+  const SellProposalShape = M.splitRecord({
+    give: {
+      Asset: AmountShape, // TODO brand specific AmountShape
+    },
+    want: {
+      Ask: AmountShape, // TODO brand specific AmountShape
+    },
+    exit: {
+      // The auction is not over until the deadline according to the
+      // provided timer. The seller cannot exit beforehand.
+      waived: null,
+    },
+  });
+
   const makeBidInvitation = () => {
     /** @type {OfferHandler} */
     const performBid = seat => {
       assert(!isClosed, 'Auction session is closed, no more bidding');
-
-      assertProposalShape(seat, {
-        give: { Bid: null },
-        want: { Asset: null },
-      });
       assertBidSeat(zcf, sellSeat, seat);
 
       // XXX await make function hanging
@@ -133,17 +153,15 @@ const start = zcf => {
     };
 
     const customProperties = getSessionDetails();
-    return zcf.makeInvitation(performBid, 'bid', customProperties);
+    return zcf.makeInvitation(
+      performBid,
+      'bid',
+      customProperties,
+      BidProposalShape,
+    );
   };
 
   const sell = seat => {
-    assertProposalShape(seat, {
-      give: { Asset: null },
-      want: { Ask: null },
-      // The auction is not over until the deadline according to the
-      // provided timer. The seller cannot exit beforehand.
-      exit: { waived: null },
-    });
     // Save the seat for when the auction closes.
     sellSeat = seat;
 
@@ -157,7 +175,12 @@ const start = zcf => {
     getSessionDetails,
   });
 
-  const creatorInvitation = zcf.makeInvitation(sell, 'sellAssets');
+  const creatorInvitation = zcf.makeInvitation(
+    sell,
+    'sellAssets',
+    undefined,
+    SellProposalShape,
+  );
 
   return harden({ creatorInvitation, publicFacet });
 };
