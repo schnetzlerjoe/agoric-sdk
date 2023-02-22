@@ -12,6 +12,7 @@ import { makeTracer } from '@agoric/internal';
 import { insistStorageAPI } from '../lib/storageAPI.js';
 import { initializeKernel } from './initializeKernel.js';
 import { kdebugEnable } from '../lib/kdebug.js';
+import { makeNodeBundleCache } from '../../tools/bundleTool.js';
 
 const trace = makeTracer('IniSwi', false);
 
@@ -418,6 +419,12 @@ export async function initializeSwingset(
   // kconfig.namedBundleIDs.BUNDLENAME=bundleID , which both point into
   // kconfig.idToBundle.BUNDLEID=bundle
 
+  const bundleCache = await makeNodeBundleCache(
+    'bundles/',
+    { dev: config.includeDevDependencies, format: config.bundleFormat },
+    s => import(s),
+  );
+
   async function getBundle(desc, mode, nameToBundle) {
     trace(
       'getBundle',
@@ -431,10 +438,7 @@ export async function initializeSwingset(
     } else if (mode === 'bundleSpec') {
       return JSON.parse(fs.readFileSync(desc.bundleSpec).toString());
     } else if (mode === 'sourceSpec') {
-      return bundleSource(desc.sourceSpec, {
-        dev: config.includeDevDependencies,
-        format: config.bundleFormat,
-      });
+      return bundleCache.load(desc.sourceSpec);
     } else if (mode === 'bundleName') {
       assert(nameToBundle, `cannot use .bundleName in config.bundles`);
       const bundle = nameToBundle[desc.bundleName];

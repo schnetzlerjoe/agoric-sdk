@@ -3,6 +3,7 @@ import { makeReadPowers } from '@endo/compartment-mapper/node-powers.js';
 
 import bundleSource from '@endo/bundle-source';
 import { makePromiseKit } from '@endo/promise-kit';
+import pathAmbient from 'path';
 
 const { details: X, quote: q, Fail } = assert;
 
@@ -30,7 +31,7 @@ export const makeFileWriter = (fileName, { fs, path }) => {
   });
 };
 
-export const makeBundleCache = (wr, cwd, readPowers, opts) => {
+export const makeBundleCache = (wr, options, cwd, readPowers, opts) => {
   const {
     toBundleName = n => `bundle-${n}.js`,
     toBundleMeta = n => `bundle-${n}-meta.json`,
@@ -55,11 +56,10 @@ export const makeBundleCache = (wr, cwd, readPowers, opts) => {
       }
       return readPowers.read(loc);
     };
-    const bundle = await bundleSource(
-      rootPath,
-      {},
-      { ...readPowers, read: loggedRead },
-    );
+    const bundle = await bundleSource(rootPath, options, {
+      ...readPowers,
+      read: loggedRead,
+    });
 
     const { moduleFormat } = bundle;
     assert.equal(moduleFormat, 'endoZipBase64');
@@ -172,10 +172,11 @@ export const makeBundleCache = (wr, cwd, readPowers, opts) => {
   const loaded = new Map();
   /**
    * @param {string} rootPath
-   * @param {string} targetName
+   * @param {string} [targetName]
    * @param {(message: *) => void} [log]
    */
   const load = async (rootPath, targetName, log = console.debug) => {
+    targetName ||= pathAmbient.basename(rootPath, '.js');
     const found = loaded.get(targetName);
     // console.log('load', { targetName, found: !!found, rootPath });
     if (found && found.rootPath === rootPath) {
@@ -201,21 +202,13 @@ export const makeBundleCache = (wr, cwd, readPowers, opts) => {
   });
 };
 
-export const unsafeMakeBundleCache = async dest => {
-  const [fs, path, url, crypto] = await Promise.all([
-    await import('fs'),
-    await import('path'),
-    await import('url'),
-    await import('crypto'),
-  ]);
-
-  const readPowers = makeReadPowers({ fs, url, crypto });
-  const cwd = makeFileReader('', { fs, path });
-  const destWr = makeFileWriter(dest, { fs, path });
-  return makeBundleCache(destWr, cwd, readPowers);
-};
-
-export const makeNodeBundleCache = async (dest, loadModule) => {
+/**
+ *
+ * @param {string} dest
+ * @param {{ format?: string, dev?: boolean }} options
+ * @param {(id: string) => Promise<any>} loadModule
+ */
+export const makeNodeBundleCache = async (dest, options, loadModule) => {
   const [fs, path, url, crypto] = await Promise.all([
     await loadModule('fs'),
     await loadModule('path'),
@@ -226,5 +219,8 @@ export const makeNodeBundleCache = async (dest, loadModule) => {
   const readPowers = makeReadPowers({ fs, url, crypto });
   const cwd = makeFileReader('', { fs, path });
   const destWr = makeFileWriter(dest, { fs, path });
-  return makeBundleCache(destWr, cwd, readPowers);
+  return makeBundleCache(destWr, options, cwd, readPowers);
 };
+
+export const unsafeMakeBundleCache = dest =>
+  makeNodeBundleCache(dest, {}, s => import(s));
