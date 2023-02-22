@@ -5,6 +5,7 @@ import path from 'path';
 import { resolve as resolveModuleSpecifier } from 'import-meta-resolve';
 import { assert, Fail } from '@agoric/assert';
 import { getLockdownBundle } from '@agoric/xsnap-lockdown';
+import { getSupervisorBundle } from '@agoric/swingset-xs-supervisor';
 import bundleSource from '@endo/bundle-source';
 
 import '../types-ambient.js';
@@ -31,10 +32,6 @@ const allValues = async obj =>
 
 const bundleRelative = rel =>
   bundleSource(new URL(rel, import.meta.url).pathname);
-const bundleRelativeCallable = rel =>
-  bundleSource(new URL(rel, import.meta.url).pathname, {
-    format: 'nestedEvaluate',
-  });
 
 /**
  * Build the source bundles for the kernel. makeSwingsetController()
@@ -53,6 +50,7 @@ export async function buildKernelBundle() {
  */
 export async function buildVatAndDeviceBundles() {
   const lockdownP = getLockdownBundle(); // throws if bundle is not built
+  const supervisorP = getSupervisorBundle(); // ditto
   const bundles = await allValues({
     adminDevice: bundleRelative('../devices/vat-admin/device-vat-admin.js'),
     adminVat: bundleRelative('../vats/vat-admin/vat-vat-admin.js'),
@@ -61,9 +59,7 @@ export async function buildVatAndDeviceBundles() {
     timer: bundleRelative('../vats/timer/vat-timer.js'),
 
     lockdown: lockdownP,
-    supervisor: bundleRelativeCallable(
-      '../supervisors/subprocess-xsnap/supervisor-subprocess-xsnap.js',
-    ),
+    supervisor: supervisorP,
   });
 
   return harden(bundles);
