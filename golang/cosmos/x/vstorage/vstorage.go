@@ -120,7 +120,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 			return
 		}
 
-		entry := keeper.GetData(cctx.Context, path)
+		entry := keeper.GetEntry(cctx.Context, path)
 		if !entry.IsPresent() {
 			return "null", nil
 		}
@@ -189,7 +189,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 		for i, child := range children.Children {
 			ents[i] = make([]string, 2)
 			ents[i][0] = child
-			ents[i][i] = keeper.GetData(cctx.Context, fmt.Sprintf("%s.%s", path, child)).Value()
+			ents[i][i] = keeper.GetEntry(cctx.Context, fmt.Sprintf("%s.%s", path, child)).Value()
 		}
 		bytes, err := json.Marshal(ents)
 		if err != nil {
@@ -206,7 +206,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 		children := keeper.GetChildren(cctx.Context, path)
 		vals := make([]string, len(children.Children))
 		for i, child := range children.Children {
-			vals[i] = keeper.GetData(cctx.Context, fmt.Sprintf("%s.%s", path, child)).Value()
+			vals[i] = keeper.GetEntry(cctx.Context, fmt.Sprintf("%s.%s", path, child)).Value()
 		}
 		bytes, err := json.Marshal(vals)
 		if err != nil {

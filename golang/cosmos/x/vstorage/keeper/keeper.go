@@ -67,7 +67,7 @@ func (bcm *BatchingChangeManager) Track(ctx sdk.Context, k Keeper, entry types.S
 	bcm.changes[path] = &ProposedChange{
 		Path:               path,
 		NewValue:           value,
-		ValueFromLastBlock: k.GetData(ctx, path).Value(),
+		ValueFromLastBlock: k.GetEntry(ctx, path).Value(),
 		LegacyEvents:       isLegacy,
 	}
 }
@@ -192,9 +192,9 @@ func (k Keeper) EmitChange(ctx sdk.Context, change *ProposedChange) {
 	)
 }
 
-// GetData gets generic storage.  The default value is an empty string.
-func (k Keeper) GetData(ctx sdk.Context, path string) types.StorageEntry {
-	//fmt.Printf("GetData(%s)\n", path);
+// GetEntry gets generic storage.  The default value is an empty string.
+func (k Keeper) GetEntry(ctx sdk.Context, path string) types.StorageEntry {
+	//fmt.Printf("GetEntry(%s)\n", path);
 	store := ctx.KVStore(k.storeKey)
 	encodedKey := types.PathToEncodedKey(path)
 	rawValue := store.Get(encodedKey)
@@ -237,7 +237,7 @@ func (k Keeper) GetChildren(ctx sdk.Context, path string) *types.Children {
 // (just an empty string) and exist only to provide linkage to subnodes with
 // data.
 func (k Keeper) HasStorage(ctx sdk.Context, path string) bool {
-	return k.GetData(ctx, path).IsPresent()
+	return k.GetEntry(ctx, path).IsPresent()
 }
 
 // HasEntry tells if a given path has either subnodes or data.
@@ -281,7 +281,7 @@ func (k Keeper) AppendStorageValueAndNotify(ctx sdk.Context, path, value string)
 
 	// Preserve correctly-formatted data within the current block,
 	// otherwise initialize a blank cell.
-	currentData := k.GetData(ctx, path).Value()
+	currentData := k.GetEntry(ctx, path).Value()
 	var cell StreamCell
 	_ = json.Unmarshal([]byte(currentData), &cell)
 	if cell.BlockHeight != blockHeight {
