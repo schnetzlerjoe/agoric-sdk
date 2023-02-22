@@ -9,6 +9,14 @@ const logged = label => x => {
   return x;
 };
 
+// TODO: render IssuerKits as structures (records?)
+// TODO: make vats into a space
+// TODO: make bundles into a space?
+// TODO: style for namehub?
+// TODO: agoricNames as tree
+// TODO: facets of bridge manager
+// TODO: move to test
+
 const styles = {
   vatPowers: 'shape=star, style=filled, fillcolor=aqua',
   vats: 'shape=doubleoctagon, style=filled, fillcolor=tomato',
