@@ -101,7 +101,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 			if err != nil {
 				return
 			}
-			if !entry.IsPresent() {
+			if !entry.HasData() {
 				err = errors.New("No value for append entry with path: " + entry.Path())
 				return
 			}
@@ -121,7 +121,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 		}
 
 		entry := keeper.GetEntry(cctx.Context, path)
-		if !entry.IsPresent() {
+		if !entry.HasData() {
 			return "null", nil
 		}
 		//fmt.Printf("Keeper.GetStorage gave us %bz\n", entry.Value())

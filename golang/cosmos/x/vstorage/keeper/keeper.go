@@ -199,10 +199,10 @@ func (k Keeper) GetEntry(ctx sdk.Context, path string) types.StorageEntry {
 	encodedKey := types.PathToEncodedKey(path)
 	rawValue := store.Get(encodedKey)
 	if len(rawValue) == 0 {
-		return types.NewEmptyStorageEntry(path)
+		return types.NewStorageEntryWithNoData(path)
 	}
 	if bytes.Equal(rawValue, types.EncodedNoDataValue) {
-		return types.NewEmptyStorageEntry(path)
+		return types.NewStorageEntryWithNoData(path)
 	}
 	if !bytes.HasPrefix(rawValue, types.EncodedDataPrefix) {
 		panic(fmt.Errorf("value at path %q starts with unexpected prefix", path))
@@ -237,7 +237,7 @@ func (k Keeper) GetChildren(ctx sdk.Context, path string) *types.Children {
 // (just an empty string) and exist only to provide linkage to subnodes with
 // data.
 func (k Keeper) HasStorage(ctx sdk.Context, path string) bool {
-	return k.GetEntry(ctx, path).IsPresent()
+	return k.GetEntry(ctx, path).HasData()
 }
 
 // HasEntry tells if a given path has either subnodes or data.
@@ -313,7 +313,7 @@ func (k Keeper) SetStorage(ctx sdk.Context, entry types.StorageEntry) {
 	path := entry.Path()
 	encodedKey := types.PathToEncodedKey(path)
 
-	if !entry.IsPresent() {
+	if !entry.HasData() {
 		if !k.HasChildren(ctx, path) {
 			// We have no children, can delete.
 			store.Delete(encodedKey)
@@ -328,7 +328,7 @@ func (k Keeper) SetStorage(ctx sdk.Context, entry types.StorageEntry) {
 
 	// Update our other parent children.
 	pathComponents := strings.Split(path, types.PathSeparator)
-	if !entry.IsPresent() {
+	if !entry.HasData() {
 		// delete placeholder ancestors if they're no longer needed
 		for i := len(pathComponents) - 1; i >= 0; i-- {
 			ancestor := componentsToPath(pathComponents[0:i])

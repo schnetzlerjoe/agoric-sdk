@@ -22,7 +22,7 @@ func NewStorageEntry(path string, value string) StorageEntry {
 	return StorageEntry{path, &value}
 }
 
-func NewEmptyStorageEntry(path string) StorageEntry {
+func NewStorageEntryWithNoData(path string) StorageEntry {
 	return StorageEntry{path, nil}
 }
 
@@ -44,14 +44,14 @@ func UnmarshalStorageEntry(msg json.RawMessage) (entry StorageEntry, err error) 
 	case string:
 		entry = NewStorageEntry(path, generic[1].(string))
 	case nil:
-		entry = NewEmptyStorageEntry(path)
+		entry = NewStorageEntryWithNoData(path)
 	default:
 		err = fmt.Errorf("invalid storage entry value: %q", generic[1])
 	}
 	return
 }
 
-func (sc StorageEntry) IsPresent() bool {
+func (sc StorageEntry) HasData() bool {
 	return sc.value != nil
 }
 

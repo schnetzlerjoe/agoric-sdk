@@ -63,13 +63,13 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Test that unknown children return empty string.
-	if got := keeper.GetEntry(ctx, "unknown"); got.IsPresent() || got.Value() != "" {
+	if got := keeper.GetEntry(ctx, "unknown"); got.HasData() || got.Value() != "" {
 		t.Errorf("got %q, want no value", got.Value())
 	}
 
 	// Test that we can store and retrieve an empty string value.
 	keeper.SetStorage(ctx, types.NewStorageEntry("inited", ""))
-	if got := keeper.GetEntry(ctx, "inited"); !got.IsPresent() || got.Value() != "" {
+	if got := keeper.GetEntry(ctx, "inited"); !got.HasData() || got.Value() != "" {
 		t.Errorf("got %q, want empty string", got.Value())
 	}
 
@@ -119,7 +119,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Delete the child's contents.
-	keeper.SetStorage(ctx, types.NewEmptyStorageEntry("key1.child1"))
+	keeper.SetStorage(ctx, types.NewStorageEntryWithNoData("key1.child1"))
 	if got := keeper.GetChildren(ctx, "key1"); !childrenEqual(got.Children, []string{"child1"}) {
 		t.Errorf("got %q children, want [child1]", got.Children)
 	}
@@ -129,7 +129,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Delete the grandchild's contents.
-	keeper.SetStorage(ctx, types.NewEmptyStorageEntry("key1.child1.grandchild1"))
+	keeper.SetStorage(ctx, types.NewStorageEntryWithNoData("key1.child1.grandchild1"))
 	if got := keeper.GetChildren(ctx, "key1.child1"); !childrenEqual(got.Children, []string{}) {
 		t.Errorf("got %q children, want []", got.Children)
 	}
@@ -139,7 +139,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// See about deleting the parent.
-	keeper.SetStorage(ctx, types.NewEmptyStorageEntry("key1"))
+	keeper.SetStorage(ctx, types.NewStorageEntryWithNoData("key1"))
 	if got := keeper.GetChildren(ctx, ""); !childrenEqual(got.Children, []string{"alpha2", "beta3", "inited"}) {
 		t.Errorf("got %q children, want [alpha2,beta3,inited]", got.Children)
 	}

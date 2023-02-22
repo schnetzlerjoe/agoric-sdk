@@ -115,7 +115,7 @@ func (k Keeper) actionQueueIndex(ctx sdk.Context, name string) (uint64, error) {
 	index := uint64(0)
 	var err error
 	indexEntry := k.vstorageKeeper.GetEntry(ctx, StoragePathActionQueue+"."+name)
-	if indexEntry.IsPresent() {
+	if indexEntry.HasData() {
 		index, err = strconv.ParseUint(indexEntry.Value(), 10, 64)
 	}
 	return index, err
@@ -192,7 +192,7 @@ func getBeansOwingPathForAddress(addr sdk.AccAddress) string {
 func (k Keeper) GetBeansOwing(ctx sdk.Context, addr sdk.AccAddress) sdk.Uint {
 	path := getBeansOwingPathForAddress(addr)
 	entry := k.vstorageKeeper.GetEntry(ctx, path)
-	if !entry.IsPresent() {
+	if !entry.HasData() {
 		return sdk.ZeroUint()
 	}
 	return sdk.NewUintFromString(entry.Value())
@@ -306,7 +306,7 @@ func (k Keeper) ChargeForProvisioning(ctx sdk.Context, submitter, addr sdk.AccAd
 func (k Keeper) GetEgress(ctx sdk.Context, addr sdk.AccAddress) types.Egress {
 	path := StoragePathEgress + "." + addr.String()
 	entry := k.vstorageKeeper.GetEntry(ctx, path)
-	if !entry.IsPresent() {
+	if !entry.HasData() {
 		return types.Egress{}
 	}
 
