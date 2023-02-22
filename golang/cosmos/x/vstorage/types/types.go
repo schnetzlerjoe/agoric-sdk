@@ -51,17 +51,17 @@ func UnmarshalStorageEntry(msg json.RawMessage) (entry StorageEntry, err error) 
 	return
 }
 
-func (sc StorageEntry) HasData() bool {
-	return sc.value != nil
+func (se StorageEntry) HasData() bool {
+	return se.value != nil
 }
 
-func (sc StorageEntry) Path() string {
-	return sc.path
+func (se StorageEntry) Path() string {
+	return se.path
 }
 
-func (sc StorageEntry) Value() string {
-	if sc.value != nil {
-		return *sc.value
+func (se StorageEntry) Value() string {
+	if se.value != nil {
+		return *se.value
 	} else {
 		return ""
 	}
