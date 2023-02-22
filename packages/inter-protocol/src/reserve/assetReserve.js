@@ -2,7 +2,6 @@ import { E, Far } from '@endo/far';
 import { AmountMath } from '@agoric/ertp';
 import { atomicTransfer } from '@agoric/zoe/src/contractSupport/index.js';
 import { provideDurableMapStore, prepareKindMulti } from '@agoric/vat-data';
-
 import { makeTracer } from '@agoric/internal';
 import { handleParamGovernance } from '@agoric/governance';
 

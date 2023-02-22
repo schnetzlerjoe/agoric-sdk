@@ -93,7 +93,6 @@
 /**
  * @typedef {object} XYKAMMCreatorFacet
  * @property {() => Promise<Invitation>} makeCollectFeesInvitation
- * @property {(facet: AssetReservePublicFacet) => void} resolveReserveFacet
  */
 
 /**

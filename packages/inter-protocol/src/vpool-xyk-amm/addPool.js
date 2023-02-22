@@ -78,7 +78,7 @@ export const makeAddIssuer = (
 /**
  * @param {Baggage} baggage
  * @param {import('./multipoolMarketMaker.js').AmmPowers} ammPowers
- * @param {(secondaryBrand: Brand, reserveLiquidityTokenSeat: ZCFSeat, liquidityKeyword: Keyword) => Promise<void>} onOfferHandled
+ * @param {() => Promise<void>} onOfferHandled
  * @param {ERef<StorageNode>} storageNode
  * @param {ERef<Marshaller>} marshaller
  */
@@ -175,11 +175,7 @@ export const makeAddPoolInvitation = (
     seat.exit();
     pool.updateState();
 
-    await onOfferHandled(
-      secondaryBrand,
-      reserveLiquidityTokenSeat,
-      liquidityKeyword,
-    );
+    await onOfferHandled();
     return 'Added liquidity.';
   };
 

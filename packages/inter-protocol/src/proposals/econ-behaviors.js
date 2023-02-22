@@ -45,6 +45,14 @@ const MILLI = 1_000_000n;
  */
 
 /**
+ * @typedef {object} AuctionKit
+ * @property {Awaited<ReturnType<import('../auction/auctioneer.js').start>>['creatorFacet']} creatorFacet
+ * @property {Awaited<ReturnType<import('../auction/auctioneer.js').start>>['publicFacet']} publicFacet
+ * @property {GovernedContractFacetAccess<{},{}>} governorCreatorFacet
+ * @property {AdminFacet} adminFacet
+ */
+
+/**
  * @typedef { WellKnownSpaces & ChainBootstrapSpace & EconomyBootstrapSpace
  * } EconomyBootstrapPowers
  * @typedef {PromiseSpaceOf<{
@@ -83,12 +91,7 @@ const MILLI = 1_000_000n;
  *     governorCreatorFacet: GovernedContractFacetAccess<VaultFactoryPublicFacet, VaultFactoryCreatorFacet>,
  *     adminFacet: AdminFacet,
  *   },
- *   auctionKit: {
- *     publicFacet: AuctioneerPublicFacet,
- *     creatorFacet: AuctioneerCreatorFacet,
- *     governorCreatorFacet: GovernedContractFacetAccess<{},{}>,
- *     adminFacet: AdminFacet,
- *   }
+ *   auctionKit: AuctionKit,
  *   minInitialDebt: NatValue,
  * }>} EconomyBootstrapSpace
  */
@@ -523,7 +526,6 @@ export const startRewardDistributor = async ({
     bankManager,
     vaultFactoryKit,
     periodicFeeCollectors,
-    // ammKit,
     stakeFactoryKit,
     reserveKit,
     zoe,
@@ -603,7 +605,6 @@ export const startRewardDistributor = async ({
 
   const collectorKit = {
     vaultFactory: E.get(vaultFactoryKit).creatorFacet,
-    // amm: E.get(ammKit).creatorFacet,
     runStake: E.get(stakeFactoryKit).creatorFacet,
   };
   await Promise.all(

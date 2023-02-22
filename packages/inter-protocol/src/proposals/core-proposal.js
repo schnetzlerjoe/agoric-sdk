@@ -39,7 +39,6 @@ const SHARED_MAIN_MANIFEST = harden({
       priceAuthority: 'priceAuthority',
       economicCommitteeCreatorFacet: 'economicCommittee',
       reserveKit: 'reserve',
-      auction: 'auction',
     },
     produce: { vaultFactoryKit: 'VaultFactory' },
     brand: { consume: { [Stable.symbol]: 'zoe' } },
@@ -72,7 +71,6 @@ const SHARED_MAIN_MANIFEST = harden({
 
   [econBehaviors.setupReserve.name]: {
     consume: {
-      // ammKit: 'amm',
       board: 'board',
       chainStorage: true,
       feeMintAccess: 'zoe',
@@ -110,8 +108,7 @@ const SHARED_MAIN_MANIFEST = harden({
       produce: { auction: 'auction' },
     },
     installation: {
-      consume: { auctionInstallation: 'zoe' },
-      contractGovernor: 'zoe',
+      consume: { auction: 'zoe', contractGovernor: 'zoe' },
     },
     issuer: {
       consume: { [Stable.symbol]: 'zoe' },
@@ -126,7 +123,6 @@ const REWARD_MANIFEST = harden({
       bankManager: true,
       vaultFactoryKit: true,
       periodicFeeCollectors: true,
-      // ammKit: true,
       stakeFactoryKit: true,
       reserveKit: true,
       zoe: true,

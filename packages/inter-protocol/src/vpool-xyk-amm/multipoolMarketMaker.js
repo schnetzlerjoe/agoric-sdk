@@ -3,10 +3,7 @@ import '@agoric/zoe/exported.js';
 import { AssetKind, makeIssuerKit } from '@agoric/ertp';
 import { handleParamGovernance, ParamTypes } from '@agoric/governance';
 import { makeAtomicProvider } from '@agoric/store/src/stores/store-utils.js';
-import {
-  assertIssuerKeywords,
-  offerTo,
-} from '@agoric/zoe/src/contractSupport/index.js';
+import { assertIssuerKeywords } from '@agoric/zoe/src/contractSupport/index.js';
 import { E } from '@endo/far';
 import { Far } from '@endo/marshal';
 import { initEmpty } from '@agoric/store';
@@ -236,60 +233,12 @@ const start = async (zcf, privateArgs, baggage) => {
     () => zcf.makeEmptySeatKit().zcfSeat,
   );
 
-  /** @type {AssetReservePublicFacet | undefined} */
-  let reserveFacet = baggage.has('reserveFacet')
-    ? baggage.get('reserveFacet')
-    : undefined;
-
   /**
-   * @param {Brand<'nat'>} secondaryBrand
-   * @param {ZCFSeat} reserveLiquidityTokenSeat
-   * @param {Keyword} liquidityKeyword
    * @returns {Promise<void>} up to caller whether to await or handle rejections
    */
-  const handlePoolAdded = async (
-    secondaryBrand,
-    reserveLiquidityTokenSeat,
-    liquidityKeyword,
-  ) => {
-    trace('handlePoolAdded', { secondaryBrand, liquidityKeyword });
+  const handlePoolAdded = async () => {
+    trace('handlePoolAdded');
     updateMetrics();
-
-    assert(reserveFacet, 'Missing reserveFacet');
-    assert(reserveLiquidityTokenSeat, 'Missing reserveLiquidityTokenSeat');
-
-    const secondaryIssuer = await zcf.getIssuerForBrand(secondaryBrand);
-    trace('ensuring reserve has the liquidity issuer', {
-      secondaryBrand,
-      secondaryIssuer,
-    });
-
-    // XXX removed when the vaults release sw
-    // await E(reserveFacet).addLiquidityIssuer(secondaryIssuer);
-
-    trace(
-      `move ${liquidityKeyword} to the reserve`,
-      reserveLiquidityTokenSeat.getCurrentAllocation(),
-    );
-    const addCollateral = await E(reserveFacet).makeAddCollateralInvitation();
-    const proposal = harden({
-      give: {
-        Collateral:
-          reserveLiquidityTokenSeat.getCurrentAllocation()[liquidityKeyword],
-      },
-    });
-    const { deposited, userSeatPromise } = await offerTo(
-      zcf,
-      addCollateral,
-      harden({ [liquidityKeyword]: 'Collateral' }),
-      proposal,
-      reserveLiquidityTokenSeat,
-    );
-    const deposits = await deposited;
-    trace('handlePoolAdded deposited', deposits);
-    await E(userSeatPromise).getOfferResult();
-    reserveLiquidityTokenSeat.exit();
-    trace('handlePoolAdded done');
   };
 
   /**
@@ -473,18 +422,6 @@ const start = async (zcf, privateArgs, baggage) => {
   const { governorFacet, limitedCreatorFacet } = makeVirtualGovernorFacet(
     harden({
       makeCollectFeesInvitation,
-      /**
-       * Must be called before adding pools. Not provided at contract start time
-       * due to cyclic dependency.
-       *
-       * @param {MethodContext} _context
-       * @param {AssetReservePublicFacet} facet
-       */
-      resolveReserveFacet: (_context, facet) => {
-        assert(!reserveFacet, 'reserveFacet already resolved');
-        reserveFacet = facet;
-        baggage.init('reserveFacet', facet);
-      },
     }),
   );
 
