@@ -965,10 +965,7 @@ export function makeCollectionManager(
    * @returns {WeakMapStore<K,V>}
    */
   const makeScalarBigWeakMapStore = (label = 'weakMap', options = {}) =>
-    makeBigWeakMapStore(
-      label,
-      narrowKeyShapeOption(M.remotable('weak key'), options),
-    );
+    makeBigWeakMapStore(label, narrowKeyShapeOption(M.scalar(), options));
 
   /**
    * Produce a *scalar* big set: keys can only be atomic values, primitives, or
@@ -992,10 +989,7 @@ export function makeCollectionManager(
    * @returns {WeakSetStore<K>}
    */
   const makeScalarBigWeakSetStore = (label = 'weakSet', options = {}) =>
-    makeBigWeakSetStore(
-      label,
-      narrowKeyShapeOption(M.remotable('weak key'), options),
-    );
+    makeBigWeakSetStore(label, narrowKeyShapeOption(M.scalar(), options));
 
   return harden({
     initializeStoreKindInfo,
