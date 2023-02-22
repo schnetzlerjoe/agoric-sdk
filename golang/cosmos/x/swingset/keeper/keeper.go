@@ -104,10 +104,11 @@ func (k Keeper) PushAction(ctx sdk.Context, action vm.Jsonable) error {
 	}
 
 	// Set the vstorage corresponding to the queue entry for the current tail.
-	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.NewStorageEntry(fmt.Sprintf(StoragePathActionQueue+".%d", tail), string(bz)))
+	path := StoragePathActionQueue + "." + strconv.FormatUint(tail, 10)
+	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.NewStorageEntry(path, string(bz)))
 
 	// Update the tail to point to the next available entry.
-	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.NewStorageEntry(StoragePathActionQueue+".tail", fmt.Sprintf("%d", tail+1)))
+	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.NewStorageEntry(StoragePathActionQueue+".tail", strconv.FormatUint(tail+1, 10)))
 	return nil
 }
 
