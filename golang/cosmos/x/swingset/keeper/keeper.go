@@ -117,7 +117,7 @@ func (k Keeper) actionQueueIndex(ctx sdk.Context, name string) (uint64, error) {
 	var err error
 	indexEntry := k.vstorageKeeper.GetEntry(ctx, StoragePathActionQueue+"."+name)
 	if indexEntry.HasData() {
-		index, err = strconv.ParseUint(indexEntry.Value(), 10, 64)
+		index, err = strconv.ParseUint(indexEntry.StringValue(), 10, 64)
 	}
 	return index, err
 }
@@ -196,7 +196,7 @@ func (k Keeper) GetBeansOwing(ctx sdk.Context, addr sdk.AccAddress) sdk.Uint {
 	if !entry.HasData() {
 		return sdk.ZeroUint()
 	}
-	return sdk.NewUintFromString(entry.Value())
+	return sdk.NewUintFromString(entry.StringValue())
 }
 
 // SetBeansOwing sets the number of beans that the given address owes to the
@@ -312,7 +312,7 @@ func (k Keeper) GetEgress(ctx sdk.Context, addr sdk.AccAddress) types.Egress {
 	}
 
 	var egress types.Egress
-	err := json.Unmarshal([]byte(entry.Value()), &egress)
+	err := json.Unmarshal([]byte(entry.StringValue()), &egress)
 	if err != nil {
 		panic(err)
 	}
@@ -356,7 +356,7 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 // GetMailbox gets the entire mailbox struct for a peer
 func (k Keeper) GetMailbox(ctx sdk.Context, peer string) string {
 	path := StoragePathMailbox + "." + peer
-	return k.vstorageKeeper.GetEntry(ctx, path).Value()
+	return k.vstorageKeeper.GetEntry(ctx, path).StringValue()
 }
 
 // SetMailbox sets the entire mailbox struct for a peer

@@ -105,7 +105,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 				err = errors.New("No value for append entry with path: " + entry.Path())
 				return
 			}
-			err = keeper.AppendStorageValueAndNotify(cctx.Context, entry.Path(), entry.Value())
+			err = keeper.AppendStorageValueAndNotify(cctx.Context, entry.Path(), entry.StringValue())
 			if err != nil {
 				return "", err
 			}
@@ -125,7 +125,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 			return "null", nil
 		}
 		//fmt.Printf("Keeper.GetStorage gave us %bz\n", entry.Value())
-		bz, err := json.Marshal(entry.Value())
+		bz, err := json.Marshal(entry.StringValue())
 		if err != nil {
 			return "", err
 		}
@@ -189,7 +189,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 		for i, child := range children.Children {
 			ents[i] = make([]string, 2)
 			ents[i][0] = child
-			ents[i][i] = keeper.GetEntry(cctx.Context, fmt.Sprintf("%s.%s", path, child)).Value()
+			ents[i][i] = keeper.GetEntry(cctx.Context, fmt.Sprintf("%s.%s", path, child)).StringValue()
 		}
 		bytes, err := json.Marshal(ents)
 		if err != nil {
@@ -206,7 +206,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 		children := keeper.GetChildren(cctx.Context, path)
 		vals := make([]string, len(children.Children))
 		for i, child := range children.Children {
-			vals[i] = keeper.GetEntry(cctx.Context, fmt.Sprintf("%s.%s", path, child)).Value()
+			vals[i] = keeper.GetEntry(cctx.Context, fmt.Sprintf("%s.%s", path, child)).StringValue()
 		}
 		bytes, err := json.Marshal(vals)
 		if err != nil {

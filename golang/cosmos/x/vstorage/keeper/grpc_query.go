@@ -26,7 +26,7 @@ func (k Querier) Data(c context.Context, req *types.QueryDataRequest) (*types.Qu
 	entry := k.GetEntry(ctx, req.Path)
 
 	return &types.QueryDataResponse{
-		Value: entry.Value(),
+		Value: entry.StringValue(),
 	}, nil
 }
 

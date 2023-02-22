@@ -56,7 +56,7 @@ func (bcm *BatchingChangeManager) Track(ctx sdk.Context, k Keeper, entry types.S
 	path := entry.Path()
 	// TODO: differentiate between deletion and setting empty string?
 	// Using empty string for deletion for backwards compatibility
-	value := entry.Value()
+	value := entry.StringValue()
 	if change, ok := bcm.changes[path]; ok {
 		change.NewValue = value
 		if isLegacy {
@@ -67,7 +67,7 @@ func (bcm *BatchingChangeManager) Track(ctx sdk.Context, k Keeper, entry types.S
 	bcm.changes[path] = &ProposedChange{
 		Path:               path,
 		NewValue:           value,
-		ValueFromLastBlock: k.GetEntry(ctx, path).Value(),
+		ValueFromLastBlock: k.GetEntry(ctx, path).StringValue(),
 		LegacyEvents:       isLegacy,
 	}
 }
@@ -281,7 +281,7 @@ func (k Keeper) AppendStorageValueAndNotify(ctx sdk.Context, path, value string)
 
 	// Preserve correctly-formatted data within the current block,
 	// otherwise initialize a blank cell.
-	currentData := k.GetEntry(ctx, path).Value()
+	currentData := k.GetEntry(ctx, path).StringValue()
 	var cell StreamCell
 	_ = json.Unmarshal([]byte(currentData), &cell)
 	if cell.BlockHeight != blockHeight {
@@ -322,7 +322,7 @@ func (k Keeper) SetStorage(ctx sdk.Context, entry types.StorageEntry) {
 		}
 	} else {
 		// Update the value.
-		bz := bytes.Join([][]byte{types.EncodedDataPrefix, []byte(entry.Value())}, []byte{})
+		bz := bytes.Join([][]byte{types.EncodedDataPrefix, []byte(entry.StringValue())}, []byte{})
 		store.Set(encodedKey, bz)
 	}
 

@@ -39,7 +39,7 @@ func queryData(ctx sdk.Context, path string, req abci.RequestQuery, keeper Keepe
 		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "could not get vstorage path")
 	}
 
-	bz, err2 := codec.MarshalJSONIndent(legacyQuerierCdc, types.Data{Value: entry.Value()})
+	bz, err2 := codec.MarshalJSONIndent(legacyQuerierCdc, types.Data{Value: entry.StringValue()})
 	if err2 != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err2.Error())
 	}
