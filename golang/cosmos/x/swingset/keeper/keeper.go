@@ -104,10 +104,10 @@ func (k Keeper) PushAction(ctx sdk.Context, action vm.Jsonable) error {
 	}
 
 	// Set the vstorage corresponding to the queue entry for the current tail.
-	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.StorageEntry{fmt.Sprintf(StoragePathActionQueue+".%d", tail), string(bz)})
+	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.NewStorageEntry(fmt.Sprintf(StoragePathActionQueue+".%d", tail), string(bz)))
 
 	// Update the tail to point to the next available entry.
-	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.StorageEntry{StoragePathActionQueue + ".tail", fmt.Sprintf("%d", tail+1)})
+	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.NewStorageEntry(StoragePathActionQueue+".tail", fmt.Sprintf("%d", tail+1)))
 	return nil
 }
 
@@ -202,7 +202,7 @@ func (k Keeper) GetBeansOwing(ctx sdk.Context, addr sdk.AccAddress) sdk.Uint {
 // feeCollector but has not yet paid.
 func (k Keeper) SetBeansOwing(ctx sdk.Context, addr sdk.AccAddress, beans sdk.Uint) {
 	path := getBeansOwingPathForAddress(addr)
-	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.StorageEntry{path, beans.String()})
+	k.vstorageKeeper.SetStorage(ctx, vstoragetypes.NewStorageEntry(path, beans.String()))
 }
 
 // ChargeBeans charges the given address the given number of beans.  It divides
@@ -329,7 +329,7 @@ func (k Keeper) SetEgress(ctx sdk.Context, egress *types.Egress) error {
 	}
 
 	// FIXME: We should use just SetStorageAndNotify here, but solo needs legacy for now.
-	k.vstorageKeeper.LegacySetStorageAndNotify(ctx, vstoragetypes.StorageEntry{path, string(bz)})
+	k.vstorageKeeper.LegacySetStorageAndNotify(ctx, vstoragetypes.NewStorageEntry(path, string(bz)))
 
 	// Now make sure the corresponding account has been initialised.
 	if acc := k.accountKeeper.GetAccount(ctx, egress.Peer); acc != nil {
@@ -362,7 +362,7 @@ func (k Keeper) GetMailbox(ctx sdk.Context, peer string) string {
 func (k Keeper) SetMailbox(ctx sdk.Context, peer string, mailbox string) {
 	path := StoragePathMailbox + "." + peer
 	// FIXME: We should use just SetStorageAndNotify here, but solo needs legacy for now.
-	k.vstorageKeeper.LegacySetStorageAndNotify(ctx, vstoragetypes.StorageEntry{path, mailbox})
+	k.vstorageKeeper.LegacySetStorageAndNotify(ctx, vstoragetypes.NewStorageEntry(path, mailbox))
 }
 
 func (k Keeper) PathToEncodedKey(path string) []byte {

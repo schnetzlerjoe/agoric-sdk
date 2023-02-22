@@ -141,7 +141,7 @@ func (k Keeper) ImportStorage(ctx sdk.Context, entries []*types.DataEntry) {
 	for _, entry := range entries {
 		// This set does the bookkeeping for us in case the entries aren't a
 		// complete tree.
-		k.SetStorage(ctx, types.StorageEntry{entry.Path, entry.Value})
+		k.SetStorage(ctx, types.NewStorageEntry(entry.Path, entry.Value))
 	}
 }
 
@@ -199,16 +199,16 @@ func (k Keeper) GetData(ctx sdk.Context, path string) types.StorageEntry {
 	encodedKey := types.PathToEncodedKey(path)
 	rawValue := store.Get(encodedKey)
 	if len(rawValue) == 0 {
-		return types.StorageEntry{path}
+		return types.NewEmptyStorageEntry(path)
 	}
 	if bytes.Equal(rawValue, types.EncodedNoDataValue) {
-		return types.StorageEntry{path}
+		return types.NewEmptyStorageEntry(path)
 	}
 	if !bytes.HasPrefix(rawValue, types.EncodedDataPrefix) {
 		panic(fmt.Errorf("value at path %q starts with unexpected prefix", path))
 	}
 	value := string(rawValue[len(types.EncodedDataPrefix):])
-	return types.StorageEntry{path, value}
+	return types.NewStorageEntry(path, value)
 }
 
 func (k Keeper) getKeyIterator(ctx sdk.Context, path string) db.Iterator {
@@ -296,7 +296,7 @@ func (k Keeper) AppendStorageValueAndNotify(ctx sdk.Context, path, value string)
 	if err != nil {
 		return err
 	}
-	k.SetStorageAndNotify(ctx, types.StorageEntry{path, string(bz)})
+	k.SetStorageAndNotify(ctx, types.NewStorageEntry(path, string(bz)))
 	return nil
 }
 

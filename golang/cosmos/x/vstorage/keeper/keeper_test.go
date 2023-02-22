@@ -57,7 +57,7 @@ func TestStorage(t *testing.T) {
 	ctx, keeper := testKit.ctx, testKit.vstorageKeeper
 
 	// Test that we can store and retrieve a value.
-	keeper.SetStorage(ctx, types.StorageEntry{"inited", "initValue"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("inited", "initValue"))
 	if got := keeper.GetData(ctx, "inited").Value(); got != "initValue" {
 		t.Errorf("got %q, want %q", got, "initValue")
 	}
@@ -68,7 +68,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Test that we can store and retrieve an empty string value.
-	keeper.SetStorage(ctx, types.StorageEntry{"inited", ""})
+	keeper.SetStorage(ctx, types.NewStorageEntry("inited", ""))
 	if got := keeper.GetData(ctx, "inited"); !got.IsPresent() || got.Value() != "" {
 		t.Errorf("got %q, want empty string", got)
 	}
@@ -78,18 +78,18 @@ func TestStorage(t *testing.T) {
 		t.Errorf("got %q children, want [inited]", got.Children)
 	}
 
-	keeper.SetStorage(ctx, types.StorageEntry{"key1", "value1"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("key1", "value1"))
 	if got := keeper.GetChildren(ctx, ""); !childrenEqual(got.Children, []string{"inited", "key1"}) {
 		t.Errorf("got %q children, want [inited,key1]", got.Children)
 	}
 
 	// Check alphabetical.
-	keeper.SetStorage(ctx, types.StorageEntry{"alpha2", "value2"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("alpha2", "value2"))
 	if got := keeper.GetChildren(ctx, ""); !childrenEqual(got.Children, []string{"alpha2", "inited", "key1"}) {
 		t.Errorf("got %q children, want [alpha2,inited,key1]", got.Children)
 	}
 
-	keeper.SetStorage(ctx, types.StorageEntry{"beta3", "value3"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("beta3", "value3"))
 	if got := keeper.GetChildren(ctx, ""); !childrenEqual(got.Children, []string{"alpha2", "beta3", "inited", "key1"}) {
 		t.Errorf("got %q children, want [alpha2,beta3,inited,key1]", got.Children)
 	}
@@ -99,7 +99,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Check adding children.
-	keeper.SetStorage(ctx, types.StorageEntry{"key1.child1", "value1child"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("key1.child1", "value1child"))
 	if got := keeper.GetData(ctx, "key1.child1").Value(); got != "value1child" {
 		t.Errorf("got %q, want %q", got, "value1child")
 	}
@@ -109,7 +109,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Add a grandchild.
-	keeper.SetStorage(ctx, types.StorageEntry{"key1.child1.grandchild1", "value1grandchild"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("key1.child1.grandchild1", "value1grandchild"))
 	if got := keeper.GetData(ctx, "key1.child1.grandchild1").Value(); got != "value1grandchild" {
 		t.Errorf("got %q, want %q", got, "value1grandchild")
 	}
@@ -119,7 +119,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Delete the child's contents.
-	keeper.SetStorage(ctx, types.StorageEntry{"key1.child1"})
+	keeper.SetStorage(ctx, types.NewEmptyStorageEntry("key1.child1"))
 	if got := keeper.GetChildren(ctx, "key1"); !childrenEqual(got.Children, []string{"child1"}) {
 		t.Errorf("got %q children, want [child1]", got.Children)
 	}
@@ -129,7 +129,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Delete the grandchild's contents.
-	keeper.SetStorage(ctx, types.StorageEntry{"key1.child1.grandchild1"})
+	keeper.SetStorage(ctx, types.NewEmptyStorageEntry("key1.child1.grandchild1"))
 	if got := keeper.GetChildren(ctx, "key1.child1"); !childrenEqual(got.Children, []string{}) {
 		t.Errorf("got %q children, want []", got.Children)
 	}
@@ -139,13 +139,13 @@ func TestStorage(t *testing.T) {
 	}
 
 	// See about deleting the parent.
-	keeper.SetStorage(ctx, types.StorageEntry{"key1"})
+	keeper.SetStorage(ctx, types.NewEmptyStorageEntry("key1"))
 	if got := keeper.GetChildren(ctx, ""); !childrenEqual(got.Children, []string{"alpha2", "beta3", "inited"}) {
 		t.Errorf("got %q children, want [alpha2,beta3,inited]", got.Children)
 	}
 
 	// Do a deep set.
-	keeper.SetStorage(ctx, types.StorageEntry{"key2.child2.grandchild2", "value2grandchild"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("key2.child2.grandchild2", "value2grandchild"))
 	if got := keeper.GetChildren(ctx, ""); !childrenEqual(got.Children, []string{"alpha2", "beta3", "inited", "key2"}) {
 		t.Errorf("got %q children, want [alpha2,beta3,inited,key2]", got.Children)
 	}
@@ -157,7 +157,7 @@ func TestStorage(t *testing.T) {
 	}
 
 	// Do another deep set.
-	keeper.SetStorage(ctx, types.StorageEntry{"key2.child2.grandchild2a", "value2grandchilda"})
+	keeper.SetStorage(ctx, types.NewStorageEntry("key2.child2.grandchild2a", "value2grandchilda"))
 	if got := keeper.GetChildren(ctx, "key2.child2"); !childrenEqual(got.Children, []string{"grandchild2", "grandchild2a"}) {
 		t.Errorf("got %q children, want [grandchild2,grandchild2a]", got.Children)
 	}
@@ -181,12 +181,12 @@ func TestStorageNotify(t *testing.T) {
 	tk := makeTestKit()
 	ctx, keeper := tk.ctx, tk.vstorageKeeper
 
-	keeper.SetStorageAndNotify(ctx, types.StorageEntry{"notify.noLegacy", "noLegacyValue"})
-	keeper.LegacySetStorageAndNotify(ctx, types.StorageEntry{"notify.legacy", "legacyValue"})
-	keeper.SetStorageAndNotify(ctx, types.StorageEntry{"notify.noLegacy2", "noLegacyValue2"})
-	keeper.SetStorageAndNotify(ctx, types.StorageEntry{"notify.legacy2", "legacyValue2"})
-	keeper.LegacySetStorageAndNotify(ctx, types.StorageEntry{"notify.legacy2", "legacyValue2b"})
-	keeper.SetStorageAndNotify(ctx, types.StorageEntry{"notify.noLegacy2", "noLegacyValue2b"})
+	keeper.SetStorageAndNotify(ctx, types.NewStorageEntry("notify.noLegacy", "noLegacyValue"))
+	keeper.LegacySetStorageAndNotify(ctx, types.NewStorageEntry("notify.legacy", "legacyValue"))
+	keeper.SetStorageAndNotify(ctx, types.NewStorageEntry("notify.noLegacy2", "noLegacyValue2"))
+	keeper.SetStorageAndNotify(ctx, types.NewStorageEntry("notify.legacy2", "legacyValue2"))
+	keeper.LegacySetStorageAndNotify(ctx, types.NewStorageEntry("notify.legacy2", "legacyValue2b"))
+	keeper.SetStorageAndNotify(ctx, types.NewStorageEntry("notify.noLegacy2", "noLegacyValue2b"))
 
 	// Check the batched events.
 	expectedBeforeFlushEvents := sdk.Events{}
