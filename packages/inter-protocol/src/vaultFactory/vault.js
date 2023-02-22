@@ -185,6 +185,7 @@ export const prepareVault = (baggage, marshaller, zcf) => {
         Collateral: AmountShape, // TODO brand specific AmountShape
         Minted: AmountShape, // TODO brand specific AmountShape
       },
+      {},
     ),
     want: M.splitRecord(
       {},
@@ -192,14 +193,25 @@ export const prepareVault = (baggage, marshaller, zcf) => {
         Collateral: AmountShape, // TODO brand specific AmountShape
         Minted: AmountShape, // TODO brand specific AmountShape
       },
+      {},
     ),
   });
 
   const CloseProposalShape = M.splitRecord({
-    give: {
-      Minted: AmountShape, // TODO brand specific AmountShape
-    },
-    want: {},
+    give: M.splitRecord(
+      {},
+      {
+        Minted: AmountShape, // TODO brand specific AmountShape
+      },
+      {},
+    ),
+    want: M.splitRecord(
+      {},
+      {
+        Collateral: AmountShape, // TODO brand specific AmountShape
+      },
+      {},
+    ),
   });
 
   const maker = prepareExoClassKit(

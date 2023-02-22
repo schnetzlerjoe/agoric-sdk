@@ -337,7 +337,9 @@ const start = async zcf => {
     give: {
       In: AmountShape, // TODO brand-specific AmountShape
     },
-    want: {},
+    want: {
+      Out: AmountShape, // TODO brand-specific AmountShape
+    },
   });
 
   /**

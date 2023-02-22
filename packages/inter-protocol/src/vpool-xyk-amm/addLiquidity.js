@@ -32,7 +32,9 @@ const makeMakeAddLiquidityInvitation = (zcf, getPool) => {
       Central: AmountShape, // TODO brand specific AmountShape
       Secondary: AmountShape, // TODO brand specific AmountShape
     },
-    want: {},
+    want: {
+      Liquidity: AmountShape, // TODO brand specific AmountShape
+    },
   });
 
   const makeAddLiquidityInvitation = () =>

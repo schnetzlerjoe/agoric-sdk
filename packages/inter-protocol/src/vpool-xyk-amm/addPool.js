@@ -195,7 +195,13 @@ export const makeAddPoolInvitation = (
       Central: AmountShape, // TODO brand specific AmountShape
       Secondary: AmountShape, // TODO brand specific AmountShape
     },
-    want: {},
+    want: M.splitRecord(
+      {},
+      {
+        Liquidity: AmountShape, // TODO brand specific AmountShape
+      },
+      {},
+    ),
   });
 
   return () =>
