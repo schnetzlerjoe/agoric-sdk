@@ -269,15 +269,15 @@ func TestStorageMigrate(t *testing.T) {
 	ctx, keeper := testKit.ctx, testKit.vstorageKeeper
 
 	// Simulate a pre-migration storage with empty string as placeholders
-	keeper.SetStorage(ctx, types.StorageEntry{"key1", "value1"})
-	keeper.SetStorage(ctx, types.StorageEntry{"key1.child1.grandchild1", "value1grandchild"})
-	keeper.SetStorage(ctx, types.StorageEntry{"key1.child1", ""})
+	keeper.SetStorage(ctx, types.NewStorageEntry("key1", "value1"))
+	keeper.SetStorage(ctx, types.NewStorageEntry("key1.child1.grandchild1", "value1grandchild"))
+	keeper.SetStorage(ctx, types.NewStorageEntry("key1.child1", ""))
 
 	// Do a deep set.
-	keeper.SetStorage(ctx, types.StorageEntry{"key2.child2.grandchild2", "value2grandchild"})
-	keeper.SetStorage(ctx, types.StorageEntry{"key2.child2.grandchild2a", "value2grandchilda"})
-	keeper.SetStorage(ctx, types.StorageEntry{"key2.child2", ""})
-	keeper.SetStorage(ctx, types.StorageEntry{"key2", ""})
+	keeper.SetStorage(ctx, types.NewStorageEntry("key2.child2.grandchild2", "value2grandchild"))
+	keeper.SetStorage(ctx, types.NewStorageEntry("key2.child2.grandchild2a", "value2grandchilda"))
+	keeper.SetStorage(ctx, types.NewStorageEntry("key2.child2", ""))
+	keeper.SetStorage(ctx, types.NewStorageEntry("key2", ""))
 
 	keeper.MigrateNoDataPlaceholders(ctx)
 
