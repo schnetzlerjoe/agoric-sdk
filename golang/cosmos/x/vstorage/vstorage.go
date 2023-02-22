@@ -187,7 +187,9 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 		children := keeper.GetChildren(cctx.Context, path)
 		ents := make([][]string, len(children.Children))
 		for i, child := range children.Children {
-			ents[i] = keeper.GetData(cctx.Context, fmt.Sprintf("%s.%s", path, child))
+			ents[i] = make([]string, 2)
+			ents[i][0] = child
+			ents[i][i] = keeper.GetData(cctx.Context, fmt.Sprintf("%s.%s", path, child)).Value()
 		}
 		bytes, err := json.Marshal(ents)
 		if err != nil {
