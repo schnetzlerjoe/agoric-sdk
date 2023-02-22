@@ -60,7 +60,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 	case "set":
 		for _, arg := range msg.Args {
 			var entry types.StorageEntry
-			err = json.Unmarshal(arg, &entry)
+			entry, err = types.UnmarshalStorageEntry(arg)
 			if err != nil {
 				return
 			}
@@ -74,7 +74,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 	case "legacySet":
 		for _, arg := range msg.Args {
 			var entry types.StorageEntry
-			err = json.Unmarshal(arg, &entry)
+			entry, err = types.UnmarshalStorageEntry(arg)
 			if err != nil {
 				return
 			}
@@ -86,7 +86,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 	case "setWithoutNotify":
 		for _, arg := range msg.Args {
 			var entry types.StorageEntry
-			err = json.Unmarshal(arg, &entry)
+			entry, err = types.UnmarshalStorageEntry(arg)
 			if err != nil {
 				return
 			}
@@ -97,7 +97,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 	case "append":
 		for _, arg := range msg.Args {
 			var entry types.StorageEntry
-			err = json.Unmarshal(arg, &entry)
+			entry, err = types.UnmarshalStorageEntry(arg)
 			if err != nil {
 				return
 			}
