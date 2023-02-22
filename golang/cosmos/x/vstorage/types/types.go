@@ -13,14 +13,17 @@ func NewChildren() *Children {
 	return &Children{}
 }
 
-type StorageEntry []string
+type StorageEntry struct {
+	path  string
+	value *string
+}
 
 func NewStorageEntry(path string, value string) StorageEntry {
-	return StorageEntry{path, value}
+	return StorageEntry{path, &value}
 }
 
 func NewEmptyStorageEntry(path string) StorageEntry {
-	return StorageEntry{path}
+	return StorageEntry{path, nil}
 }
 
 func UnmarshalStorageEntry(msg json.RawMessage) (entry StorageEntry, err error) {
@@ -49,16 +52,16 @@ func UnmarshalStorageEntry(msg json.RawMessage) (entry StorageEntry, err error) 
 }
 
 func (sc StorageEntry) IsPresent() bool {
-	return len(sc) >= 2
+	return sc.value != nil
 }
 
 func (sc StorageEntry) Path() string {
-	return sc[0]
+	return sc.path
 }
 
 func (sc StorageEntry) Value() string {
-	if len(sc) >= 2 {
-		return sc[1]
+	if sc.value != nil {
+		return *sc.value
 	} else {
 		return ""
 	}

@@ -70,7 +70,7 @@ func TestStorage(t *testing.T) {
 	// Test that we can store and retrieve an empty string value.
 	keeper.SetStorage(ctx, types.NewStorageEntry("inited", ""))
 	if got := keeper.GetData(ctx, "inited"); !got.IsPresent() || got.Value() != "" {
-		t.Errorf("got %q, want empty string", got)
+		t.Errorf("got %q, want empty string", got.Value())
 	}
 
 	// Check that our children are updated as expected.
