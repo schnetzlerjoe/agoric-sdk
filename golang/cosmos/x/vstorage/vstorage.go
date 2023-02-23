@@ -31,6 +31,14 @@ func NewStorageHandler(keeper Keeper) vstorageHandler {
 	return vstorageHandler{keeper: keeper}
 }
 
+func unmarshalPathFromArgs(args []json.RawMessage, path *string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("missing 'path' argument")
+	}
+
+	return json.Unmarshal(args[0], path)
+}
+
 func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret string, err error) {
 	keeper := sh.keeper
 	msg := new(vstorageMessage)
@@ -115,7 +123,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 	case "get":
 		// Note that "get" does not (currently) unwrap a StreamCell.
 		var path string
-		err = json.Unmarshal(msg.Args[0], &path)
+		err = unmarshalPathFromArgs(msg.Args, &path)
 		if err != nil {
 			return
 		}
@@ -133,7 +141,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 
 	case "getStoreKey":
 		var path string
-		err = json.Unmarshal(msg.Args[0], &path)
+		err = unmarshalPathFromArgs(msg.Args, &path)
 		if err != nil {
 			return
 		}
@@ -151,7 +159,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 
 	case "has":
 		var path string
-		err = json.Unmarshal(msg.Args[0], &path)
+		err = unmarshalPathFromArgs(msg.Args, &path)
 		if err != nil {
 			return
 		}
@@ -164,7 +172,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 	// TODO: "keys" is deprecated
 	case "children", "keys":
 		var path string
-		err = json.Unmarshal(msg.Args[0], &path)
+		err = unmarshalPathFromArgs(msg.Args, &path)
 		if err != nil {
 			return
 		}
@@ -180,7 +188,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 
 	case "entries":
 		var path string
-		err = json.Unmarshal(msg.Args[0], &path)
+		err = unmarshalPathFromArgs(msg.Args, &path)
 		if err != nil {
 			return
 		}
@@ -199,7 +207,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 
 	case "values":
 		var path string
-		err = json.Unmarshal(msg.Args[0], &path)
+		err = unmarshalPathFromArgs(msg.Args, &path)
 		if err != nil {
 			return
 		}
@@ -216,7 +224,7 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 
 	case "size":
 		var path string
-		err = json.Unmarshal(msg.Args[0], &path)
+		err = unmarshalPathFromArgs(msg.Args, &path)
 		if err != nil {
 			return
 		}
