@@ -15,6 +15,7 @@ const swingsetPathToCastingSpec = storagePath =>
     storeSubkey: toAscii(`swingset/data:${storagePath}`),
   });
 
+// See details of encoding in golang/cosmos/x/vstorage/types/path_keys.go
 const KEY_SEPARATOR_BYTE = 0;
 const PATH_SEPARATOR_BYTE = '.'.charCodeAt(0);
 const DATA_PREFIX_BYTES = new Uint8Array([0]);
