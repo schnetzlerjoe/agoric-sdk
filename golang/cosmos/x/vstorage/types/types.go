@@ -35,7 +35,7 @@ func UnmarshalStorageEntry(msg json.RawMessage) (entry StorageEntry, err error) 
 	}
 
 	path, ok := generic[0].(string)
-	if ok {
+	if !ok {
 		err = fmt.Errorf("invalid storage entry path: %q", generic[0])
 		return
 	}
