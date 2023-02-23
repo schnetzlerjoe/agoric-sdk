@@ -411,3 +411,15 @@ export const assertParsableNumber = specimen => {
   const match = `${specimen}`.match(NUMERIC_RE);
   assert(match, X`Invalid numeric data: ${specimen}`);
 };
+
+/**
+ * Ratios might be greater or less than one.
+ *
+ * @param {Ratio} ratio
+ * @returns {number}
+ */
+export const coerceToNumber = ratio => {
+  const n = Number(ratio.numerator.value);
+  const d = Number(ratio.denominator.value);
+  return n / d;
+};
