@@ -1,18 +1,17 @@
 import { E } from '@endo/eventual-send';
 import { Far } from '@endo/marshal';
 import { TimeMath } from '@agoric/time';
+import { M } from '@agoric/store';
+import { AmountShape } from '@agoric/ertp';
 
 // Eventually will be importable from '@agoric/zoe-contract-support'
 import {
   defaultAcceptanceMsg,
   assertIssuerKeywords,
-  assertProposalShape,
 } from '../../contractSupport/index.js';
 import * as secondPriceLogic from './secondPriceLogic.js';
 import * as firstPriceLogic from './firstPriceLogic.js';
 import { assertBidSeat } from './assertBidSeat.js';
-import { M } from '@agoric/store';
-import { AmountShape } from '@agoric/ertp';
 
 const { Fail } = assert;
 
