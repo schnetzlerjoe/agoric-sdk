@@ -76,26 +76,33 @@ harden(subscribeEach);
  * @template T
  * @param {ERef<LatestTopic<T>>} topic
  * @param {bigint} [localUpdateCount]
+ * @param {IteratorReturnResult<T>} [terminalResult]
  * @returns {ForkableAsyncIterator<T, T>}
  */
-const makeLatestIterator = (topic, localUpdateCount) => {
-  /** @type {IteratorReturnResult<T>} */
-  let terminalResult;
+const cloneLatestIterator = (topic, localUpdateCount, terminalResult) => {
   let mutex = Promise.resolve();
 
   /**
    * Request the next update record from the topic, updating our local state,
-   * and convert it to an iteration result.
+   * and convert it to an iterator result.
    *
    * @returns {Promise<IteratorResult<T, T>>}
    */
-  const requestNextResult = async () => {
+  const maybeRequestNextResult = async () => {
+    if (terminalResult) {
+      // We've reached the end of the topic, just keep returning the last result
+      // without further requests.
+      return terminalResult;
+    }
+
     // Send the next request now, skipping past intermediate updates.
     const { value, updateCount } = await E(topic).getUpdateSince(
       localUpdateCount,
     );
     // Make sure the next request is for a fresher value.
     localUpdateCount = updateCount;
+
+    // Make an IteratorResult.
     if (updateCount === undefined) {
       terminalResult = harden({ done: true, value });
       return terminalResult;
@@ -104,7 +111,7 @@ const makeLatestIterator = (topic, localUpdateCount) => {
   };
 
   return Far('LatestIterator', {
-    fork: () => makeLatestIterator(topic, localUpdateCount),
+    fork: () => cloneLatestIterator(topic, localUpdateCount, terminalResult),
     next: async () => {
       // In this adaptor, once `next()` is called and returns an unresolved
       // promise, further `next()` calls will also return unresolved promises
@@ -132,7 +139,7 @@ const makeLatestIterator = (topic, localUpdateCount) => {
       //
       // Use `mutex` to ensure that we have no more than a single request in
       // flight.
-      const nextResult = mutex.then(requestNextResult);
+      const nextResult = mutex.then(maybeRequestNextResult);
       mutex = nextResult.then(sink, sink);
       // END CRITICAL SECTION
 
@@ -140,6 +147,14 @@ const makeLatestIterator = (topic, localUpdateCount) => {
     },
   });
 };
+
+/**
+ * @template T
+ * @param {ERef<LatestTopic<T>>} topic
+ * @returns {ForkableAsyncIterator<T, T>}
+ */
+const makeLatestIterator = topic =>
+  cloneLatestIterator(topic, undefined, undefined);
 
 /**
  * Given a local or remote subscriber, returns a local AsyncIterable which
