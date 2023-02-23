@@ -50,6 +50,7 @@ const makeProposal = (brands, opts) => {
   return harden(proposal);
 };
 
+// TODO factor out BridgeAction, same across all
 /**
  * @param {Record<string, Brand>} brands
  * @param {{ offerId: string, wantMinted: number, giveCollateral: number }} opts
