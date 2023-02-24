@@ -26,6 +26,9 @@ func NewStorageEntryWithNoData(path string) StorageEntry {
 	return StorageEntry{path, nil}
 }
 
+// UnmarshalStorageEntry interprets its argument as a [key: string, value?: string | null]
+// JSON array and returns a corresponding StorageEntry.
+// The key must be a string, and the value (if present) must be a string or null.
 func UnmarshalStorageEntry(msg json.RawMessage) (entry StorageEntry, err error) {
 	var generic [2]interface{}
 	err = json.Unmarshal(msg, &generic)
