@@ -157,7 +157,7 @@ func (k Keeper) MigrateNoDataPlaceholders(ctx sdk.Context) {
 		defer iterator.Close()
 		for ; iterator.Valid(); iterator.Next() {
 			rawValue := iterator.Value()
-			if len(rawValue) == 1 && rawValue[0] == types.EncodedDataPrefix[0] {
+			if bytes.Equal(rawValue, types.EncodedDataPrefix) {
 				key := iterator.Key()
 				emptyKeys = append(emptyKeys, &key)
 			}
