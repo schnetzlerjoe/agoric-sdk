@@ -431,7 +431,7 @@ export async function initializeSwingset(
       mode,
       Object.keys(desc),
       desc.moduleFormat,
-      desc.endoZipBase64Sha512,
+      desc.endoZipBase64Sha512 || desc.sourceSpec,
     );
     if (mode === 'bundle') {
       return desc.bundle;
