@@ -129,7 +129,7 @@ const setupBorrowFacet = async (
   };
 };
 
-test('borrow assert customProps', async t => {
+test('borrow assert customDetails', async t => {
   const { borrowInvitation, zoe, installation, instance, maxLoan } =
     await setupBorrow();
 
