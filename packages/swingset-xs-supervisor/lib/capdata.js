@@ -1,3 +1,10 @@
+// This file is only used to generate the published bundle, so
+// @endo/init is in devDependencies (and this package should have no
+// direct dependencies), but eslint doesn't know that, so disable the
+// complaint.
+
+/* eslint-disable import/no-extraneous-dependencies */
+
 import { Fail } from '@agoric/assert';
 
 /* eslint-disable jsdoc/require-returns-check */
