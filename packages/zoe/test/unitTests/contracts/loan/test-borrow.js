@@ -138,7 +138,9 @@ test('borrow assert customDetails', async t => {
     handle: null,
     installation,
     instance,
-    maxLoan,
+    customDetails: {
+      maxLoan,
+    },
   });
 });
 
