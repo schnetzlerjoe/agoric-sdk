@@ -61,7 +61,7 @@ harden(assertPathSegment);
  * @typedef { 'set' | 'append' } StorageUpdateEntriesMessageMethod
  * @typedef {StorageGetByPathMessageMethod | StorageUpdateEntriesMessageMethod } StorageMessageMethod
  * @typedef { [path: string] } StorageGetByPathMessageArgs
- * @typedef { [path: string, value?: string] } StorageEntry
+ * @typedef { [path: string, value?: string | null] } StorageEntry
  * @typedef { StorageEntry[] } StorageUpdateEntriesMessageArgs
  * @typedef {{
  *   method: StorageGetByPathMessageMethod;

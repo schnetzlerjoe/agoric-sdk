@@ -65,7 +65,7 @@ const makePrefixedBridgeStorage = (
     set: (key, value) => {
       const path = `${prefix}${key}`;
       const entry =
-        value === undefined ? [path] : [path, stringify(toBridgeValue(value))];
+        value == null ? [path] : [path, stringify(toBridgeValue(value))];
       call(
         stringify({
           method: setterMethod,
