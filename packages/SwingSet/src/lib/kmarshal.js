@@ -17,7 +17,7 @@ const refMap = new WeakMap();
  *
  * @param {string} kref
  * @param {string} [iface]
- * @returns {ERef<KCap>}
+ * @returns {import('@endo/eventual-send').ERef<KCap>}
  */
 export const kslot = (kref, iface = 'none') => {
   assert.typeof(kref, 'string');
