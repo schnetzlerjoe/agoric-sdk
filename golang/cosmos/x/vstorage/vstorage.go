@@ -132,7 +132,6 @@ func (sh vstorageHandler) Receive(cctx *vm.ControllerContext, str string) (ret s
 		if !entry.HasData() {
 			return "null", nil
 		}
-		//fmt.Printf("Keeper.GetStorage gave us %bz\n", entry.Value())
 		bz, err := json.Marshal(entry.StringValue())
 		if err != nil {
 			return "", err
