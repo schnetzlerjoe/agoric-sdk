@@ -1,6 +1,7 @@
 // @ts-check
 
-import { E, Far } from '@endo/far';
+import { E } from '@endo/far';
+import { ephemeralZone } from '@agoric/zone/ephemeral.js';
 
 const { Fail } = assert;
 
@@ -66,6 +67,8 @@ harden(assertPathSegment);
  * @param {string} rootPath
  * @param {object} [rootOptions]
  * @param {boolean} [rootOptions.sequence] employ a wrapping structure that preserves each value set within a single block, and default child nodes to do the same
+ * @param {import('@agoric/zone').Zone} [rootOptions.zone] the zone in which to
+ * allocate the storage node
  */
 export function makeChainStorageRoot(
   handleStorageMessage,
@@ -73,6 +76,7 @@ export function makeChainStorageRoot(
   rootOptions = {},
 ) {
   assert.typeof(rootPath, 'string');
+  const { zone = ephemeralZone } = rootOptions;
 
   /**
    * @param {string} path
@@ -80,11 +84,18 @@ export function makeChainStorageRoot(
    * @param {boolean} [options.sequence]
    * @returns {StorageNode}
    */
-  function makeChainStorageNode(path, options = {}) {
-    const { sequence = false } = options;
-    const node = {
+  const makeChainStorageNode = zone.exoClass(
+    'ChainStorageNode',
+    undefined,
+    /**
+     * @param {string} path
+     * @param {object} [options]
+     * @param {boolean} [options.sequence]
+     */
+    (path, { sequence = false } = {}) => harden({ path, sequence }),
+    {
       getPath() {
-        return path;
+        return this.state.path;
       },
       /**
        * @deprecated use getPath
@@ -92,13 +103,14 @@ export function makeChainStorageRoot(
        */
       async getStoreKey() {
         return handleStorageMessage({
-          key: path,
+          key: this.state.path,
           method: 'getStoreKey',
           value: '',
         });
       },
       /** @type {(name: string, childNodeOptions?: {sequence?: boolean}) => StorageNode} */
       makeChildNode(name, childNodeOptions = {}) {
+        const { sequence, path } = this.state;
         assert.typeof(name, 'string');
         assertPathSegment(name);
         const mergedOptions = { sequence, ...childNodeOptions };
@@ -106,6 +118,7 @@ export function makeChainStorageRoot(
       },
       /** @type {(value: string) => Promise<void>} */
       async setValue(value) {
+        const { sequence, path } = this.state;
         assert.typeof(value, 'string');
         await handleStorageMessage({
           key: path,
@@ -120,9 +133,8 @@ export function makeChainStorageRoot(
       // * recursive delete
       // * batch operations
       // * local buffering (with end-of-block commit)
-    };
-    return Far('chainStorageNode', node);
-  }
+    },
+  );
 
   const rootNode = makeChainStorageNode(rootPath, rootOptions);
   return rootNode;
