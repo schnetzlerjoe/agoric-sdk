@@ -714,11 +714,20 @@
  * }} InterfaceGuard
  */
 
-/** @typedef {any} MethodGuardMaker
- * a parameter list like foo(a, b, c = d, …e) => f should be guarded by
- * something like
- * foo: M.call(AShape, BShape).optional(CShape).rest(EShape).returns(FShape)
- * optional is for optional (=) params. rest is for … (varargs) params
+/**
+ * @typedef {object} MethodGuardMaker
+ *
+ * A guard for:
+ * ```js
+ *   foo(a, b, c = d, ...e) => f
+ * ```
+ * would be written as:
+ * ```js
+ *   M.call(AShape, BShape).optional(CShape).rest(EShape).returns(FShape)
+ * ```
+ * @property {(optionalGuard: ArgGuard, ...optionalGuards: ArgGuard[]) => MethodGuardMaker} optional Guard optional (`arg?: T`) parameters
+ * @property {(restGuard: ArgGuard) => MethodGuardMaker} rest Guard varargs (`...args: T[]`) parameters
+ * @property {(returnGuard?: ArgGuard) => MethodGuard} returns Guard the return value
  */
 
 /** @typedef {{ klass: 'methodGuard', callKind: 'sync' | 'async', returnGuard: unknown }} MethodGuard */

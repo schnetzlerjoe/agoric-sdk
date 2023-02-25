@@ -1,7 +1,7 @@
 // @ts-check
 
 import { E } from '@endo/far';
-import { ephemeralZone } from '@agoric/zone/ephemeral.js';
+import { M, ephemeralZone } from '@agoric/zone';
 
 const { Fail } = assert;
 
@@ -32,6 +32,15 @@ const { Fail } = assert;
  * @property {() => Promise<VStorageKey>} getStoreKey DEPRECATED use getPath
  * @property {(subPath: string, options?: {sequence?: boolean}) => StorageNode} makeChildNode
  */
+
+const ChainStorageNodeI = M.interface('StorageNode', {
+  setValue: M.callWhen(M.string()).returns(),
+  getPath: M.call().returns(M.string()),
+  getStoreKey: M.callWhen().returns(M.record()),
+  makeChildNode: M.call(M.string())
+    .optional(M.record())
+    .returns(M.remotable('StorageNode')),
+});
 
 /**
  * @typedef {object} StoredFacet
@@ -86,7 +95,7 @@ export function makeChainStorageRoot(
    */
   const makeChainStorageNode = zone.exoClass(
     'ChainStorageNode',
-    undefined,
+    ChainStorageNodeI,
     /**
      * @param {string} path
      * @param {object} [options]
