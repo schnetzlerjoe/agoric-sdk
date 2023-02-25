@@ -1,6 +1,10 @@
 // @ts-check
 import { E, Far } from '@endo/far';
-import { makeAgoricNamesAccess, runModuleBehaviors } from './utils.js';
+import {
+  makeAgoricNamesAccess,
+  makeVatSpace,
+  runModuleBehaviors,
+} from './utils.js';
 import { makePromiseSpace } from './promise-space.js';
 
 const { Fail, quote: q } = assert;
@@ -73,6 +77,11 @@ export const makeBootstrap = (
     D(devices.mailbox).registerInboundHandler(vats.vattp);
     await E(vats.vattp).registerMailboxDevice(devices.mailbox);
 
+    const criticalVatKey = await E(vats.vatAdmin).getCriticalVatKey();
+    const svc = E(vats.vatAdmin).createVatAdminService(devices.vatAdmin);
+    produce.vatAdminSvc.resolve(svc);
+    const namedVat = makeVatSpace(svc, criticalVatKey, log, 'namedVat');
+
     const runBehaviors = manifest => {
       return runModuleBehaviors({
         // eslint-disable-next-line no-use-before-define
@@ -95,6 +104,7 @@ export const makeBootstrap = (
       produce,
       consume,
       ...spaces,
+      namedVat,
       runBehaviors,
       // These module namespaces might be useful for core eval governance.
       modules,
