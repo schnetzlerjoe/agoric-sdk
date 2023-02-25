@@ -10,6 +10,7 @@ import { assert, details as X } from '@agoric/assert';
  * @property {Denom} denom The denomination of the amount
  * @property {string} sender The sender address
  * @property {DepositAddress} receiver The receiver deposit address
+ * @property {string} memo The packet memo
  */
 
 // As specified in ICS20, the success result is a base64-encoded '\0x1' byte.
@@ -45,7 +46,7 @@ const safeJSONParseObject = s => {
  */
 export const parseICS20TransferPacket = async packet => {
   const ics20Packet = safeJSONParseObject(packet);
-  const { amount, denom, receiver } = ics20Packet;
+  const { amount, denom, receiver, memo } = ics20Packet;
 
   assert.typeof(denom, 'string', X`Denom ${denom} must be a string`);
   assert.typeof(receiver, 'string', X`Receiver ${receiver} must be a string`);
@@ -61,6 +62,7 @@ export const parseICS20TransferPacket = async packet => {
     depositAddress: receiver,
     remoteDenom: denom,
     value,
+    memo,
   });
 };
 
@@ -75,6 +77,7 @@ export const makeICS20TransferPacket = async ({
   value,
   remoteDenom,
   depositAddress,
+  memo,
 }) => {
   // We're using Nat as a dynamic check for overflow.
   // @ts-expect-error - this causes errors on some versions of TS, but not others.
@@ -87,6 +90,7 @@ export const makeICS20TransferPacket = async ({
     denom: remoteDenom,
     receiver: depositAddress,
     sender: DUMMY_SENDER_ADDRESS,
+    memo
   };
 
   return JSON.stringify(ics20);

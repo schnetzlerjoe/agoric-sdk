@@ -13,6 +13,7 @@
  * @property {AmountValue} value
  * @property {Denom} remoteDenom
  * @property {DepositAddress} depositAddress
+ * @property {string} memo
  */
 
 /**
@@ -47,7 +48,7 @@
  */
 
 /**
- * @typedef {(zcfSeat: ZCFSeat, depositAddress: DepositAddress) => Promise<void>} Sender
+ * @typedef {(zcfSeat: ZCFSeat, depositAddress: DepositAddress, memo: string) => Promise<void>} Sender
  * Successive transfers are not guaranteed to be processed in the order in which they were sent.
  * @typedef {(parts: PacketParts) => Promise<Bytes>} Receiver
  * @typedef {object} Courier
