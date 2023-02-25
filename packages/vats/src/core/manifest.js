@@ -143,14 +143,14 @@ const SHARED_CHAIN_BOOTSTRAP_MANIFEST = harden({
   [makeChainStorage.name]: {
     consume: { loadCriticalVat: true, bridgeManager: true },
     produce: {
-      chainStorage: 'chainStorage',
+      chainStorage: 'bridge',
     },
   },
   [publishAgoricNames.name]: {
     consume: {
       agoricNamesAdmin: true,
       board: 'board',
-      chainStorage: 'chainStorage',
+      chainStorage: 'bridge',
     },
   },
   [makeClientBanks.name]: {

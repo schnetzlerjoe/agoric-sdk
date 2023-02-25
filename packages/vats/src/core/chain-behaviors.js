@@ -335,7 +335,7 @@ export const makeBridgeManager = async ({
     walletBridgeManager.resolve(undefined);
     return;
   }
-  const vat = E(loadCriticalVat)('chainStorage');
+  const vat = E(loadCriticalVat)('bridge');
   const bridgeManager = E(vat).provideManagerForBridge(bridge);
   bridgeManagerP.resolve(bridgeManager);
   provisionBridgeManager.resolve(
@@ -368,7 +368,7 @@ export const makeChainStorage = async ({
 
   const storageBridgeManager = E(bridgeManager).register(BRIDGE_ID.STORAGE);
 
-  const vat = E(loadCriticalVat)('chainStorage');
+  const vat = E(loadCriticalVat)('bridge');
   const rootNodeP = E(vat).makeBridgedChainStorageRoot(
     storageBridgeManager,
     ROOT_PATH,

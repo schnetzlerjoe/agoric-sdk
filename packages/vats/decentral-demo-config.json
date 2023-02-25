@@ -23,8 +23,8 @@
     "centralSupply": {
       "sourceSpec": "@agoric/vats/src/centralSupply.js"
     },
-    "chainStorage": {
-      "sourceSpec": "@agoric/vats/src/vat-chainStorage.js"
+    "bridge": {
+      "sourceSpec": "@agoric/vats/src/vat-bridge.js"
     },
     "mintHolder": {
       "sourceSpec": "@agoric/vats/src/mintHolder.js"
