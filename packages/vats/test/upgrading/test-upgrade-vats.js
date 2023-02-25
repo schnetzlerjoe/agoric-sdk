@@ -98,15 +98,10 @@ const makeScenario = async (t, bundles) => {
 
 test('upgrade vat-board', async t => {
   const { bfile } = t.context;
-  const vats = {
-    bootstrap: {
-      sourceSpec: bfile('../../../SwingSet/test/bootstrap-relay.js'),
-    },
-  };
   const bundles = {
     board: { sourceSpec: bfile('../../src/vat-board.js') },
   };
-  const { relayRoot, EV, EP } = await makeScenario(t, vats, bundles);
+  const { relayRoot, EV, EP } = await makeScenario(t, bundles);
 
   t.log('create initial version');
   const boardVatConfig = {
@@ -126,4 +121,28 @@ test('upgrade vat-board', async t => {
   t.is(board2, board, 'must get the same board reference');
   const actualThing = await EP(board2).getValue(thingId);
   t.is(actualThing, thing, 'must get original value back');
+});
+
+test('upgrade bootstrap vat', async t => {
+  const { bfile } = t.context;
+  const bundles = {
+    chain: { sourceSpec: bfile('../../src/core/boot-chain.js') },
+  };
+  const { relayRoot, EV } = await makeScenario(t, bundles);
+
+  t.log('create initial version');
+  const chainVatConfig = {
+    name: 'chain',
+    bundleCapName: 'chain',
+  };
+  await relayRoot.createVat(chainVatConfig);
+  const todoArgs = [];
+  await EV('chain')
+    .bootstrap(...todoArgs)
+    .catch(problem => t.log('TODO: address problem:', problem));
+
+  t.log('now perform the null upgrade');
+
+  const { incarnationNumber } = await relayRoot.upgradeVat(chainVatConfig);
+  t.is(incarnationNumber, 2, 'vat must be upgraded');
 });
