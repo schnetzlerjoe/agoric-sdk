@@ -20,7 +20,7 @@ test.before(async t => {
   t.context = await makeTestContext(import.meta.url);
 });
 
-test('upgrade vat-board', async t => {
+const makeScenario = async (t, bundles) => {
   const { bfile } = t.context;
 
   /** @type {SwingSetConfig} */
@@ -37,9 +37,7 @@ test('upgrade vat-board', async t => {
         sourceSpec: bfile('../../../SwingSet/test/bootstrap-relay.js'),
       },
     },
-    bundles: {
-      board: { sourceSpec: bfile('../../src/vat-board.js') },
-    },
+    bundles,
   };
 
   const c = await buildVatController(config);
@@ -65,22 +63,67 @@ test('upgrade vat-board', async t => {
   const messageObject = (presence, methodName, args) =>
     run('messageVatObject', [{ presence, methodName, args }]);
 
+  const relayRoot = new Proxy(
+    {},
+    {
+      get:
+        (_t, prop, _rx) =>
+        (...args) =>
+          run(prop, args),
+    },
+  );
+  const EV = name =>
+    new Proxy(
+      {},
+      {
+        get:
+          (_t, prop, _rx) =>
+          (...args) =>
+            messageVat(name, prop, args),
+      },
+    );
+  const EP = presence =>
+    new Proxy(
+      {},
+      {
+        get:
+          (_t, prop, _rx) =>
+          (...args) =>
+            messageObject(presence, prop, args),
+      },
+    );
+
+  return { run, messageVat, messageObject, relayRoot, EV, EP };
+};
+
+test('upgrade vat-board', async t => {
+  const { bfile } = t.context;
+  const vats = {
+    bootstrap: {
+      sourceSpec: bfile('../../../SwingSet/test/bootstrap-relay.js'),
+    },
+  };
+  const bundles = {
+    board: { sourceSpec: bfile('../../src/vat-board.js') },
+  };
+  const { relayRoot, EV, EP } = await makeScenario(t, vats, bundles);
+
   t.log('create initial version');
   const boardVatConfig = {
     name: 'board',
     bundleCapName: 'board',
   };
-  await run('createVat', [boardVatConfig]);
-  const board = await messageVat('board', 'getBoard', []);
-  const thing = await run('makeSimpleRemotable', ['Thing', {}]);
-  const thingId = await messageObject(board, 'getId', [thing]);
+  await relayRoot.createVat(boardVatConfig);
+  const board = await EV('board').getBoard();
+  const thing = await relayRoot.makeSimpleRemotable('Thing', {});
+  const thingId = await EP(board).getId(thing);
   t.regex(thingId, /^board0[0-9]+$/);
 
   t.log('now perform the null upgrade');
-  const { incarnationNumber } = await run('upgradeVat', [boardVatConfig]);
+  const { incarnationNumber } = await relayRoot.upgradeVat(boardVatConfig);
   t.is(incarnationNumber, 2, 'Board vat must be upgraded');
-  const board2 = await messageVat('board', 'getBoard', []);
+  const board2 = await EV('board').getBoard();
   t.is(board2, board, 'must get the same board reference');
-  const actualThing = await messageObject(board2, 'getValue', [thingId]);
+  const actualThing = await EP(board2).getValue(thingId);
   t.is(actualThing, thing, 'must get original value back');
 });
