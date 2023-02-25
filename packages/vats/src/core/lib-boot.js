@@ -1,10 +1,7 @@
 // @ts-check
 import { E, Far } from '@endo/far';
-import {
-  makeAgoricNamesAccess,
-  makePromiseSpace,
-  runModuleBehaviors,
-} from './utils.js';
+import { makeAgoricNamesAccess, runModuleBehaviors } from './utils.js';
+import { makePromiseSpace } from './promise-space.js';
 
 const { Fail, quote: q } = assert;
 
