@@ -1,0 +1,51 @@
+# Start with a base image that has Node.js installed
+FROM node:16 as builder
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Install Go
+RUN curl -O https://dl.google.com/go/go1.20.2.linux-amd64.tar.gz \
+    && tar -xvf go1.20.2.linux-amd64.tar.gz \
+    && mv go /usr/local \
+    && rm go1.20.2.linux-amd64.tar.gz
+
+# Set environment variables for Go
+ENV GOROOT=/usr/local/go
+ENV GOPATH=$HOME/go
+ENV PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+
+RUN apt-get update && apt-get install -y jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the local codebase into the container
+COPY . .
+
+# Install Agoric SDK dependencies
+RUN yarn install --network-timeout 1000000 \
+    && yarn build \
+    && yarn link-cli $HOME/bin/agoric
+
+RUN cd /app/packages/cosmic-swingset && make scenario2-setup
+
+# The instructions involve running multiple commands and services
+# So we create a script that will be run when the container starts
+RUN echo "#!/bin/bash\n\
+agoric open --repl --hostport 0.0.0.0:8000 &\n\
+cd /app/packages/cosmic-swingset\n\
+make scenario2-run-client > $HOME/solo.log 2>&1 &\n\
+make open-ag-solo > $HOME/open.log 2>&1 &\n\
+make scenario2-run-chain-economy\n" > entrypoint.sh \
+    && chmod +x entrypoint.sh
+
+# Use multi-stage build for the final image
+FROM node:16
+
+WORKDIR /app
+
+COPY --from=builder /app .
+
+EXPOSE 8000
+
+# When the container starts, run the entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -20,7 +20,7 @@ RUN apt upgrade -y
 
 # Install Node.js, Yarn, and build tools
 # Install jq for formatting of JSON data
-RUN apt install nodejs=16.* yarn build-essential jq -y
+RUN apt install nodejs=16.* yarn build-essential jq make -y
 
 
 # First remove any existing old Go installation

@@ -86,7 +86,7 @@ scenario0-setup:
 	rm -rf t9/$(BASE_PORT)
 
 scenario0-run scenario0-run-client:
-	AG_SOLO_BASEDIR=$$PWD/t9/$(BASE_PORT) $(AG_SOLO) setup --webport=$(BASE_PORT)
+	AG_SOLO_BASEDIR=$$PWD/t9/$(BASE_PORT) $(AG_SOLO) setup --webport=$(BASE_PORT) --webhost=0.0.0.0
 scenario0-run-chain:
 	@echo 'We use the Agoric testnet, not a local chain.'
 
@@ -97,7 +97,7 @@ scenario1-run-chain:
 	AG_SETUP_COSMOS_HOME=t8 ../deployment/ag-setup-cosmos bootstrap
 
 scenario1-run-client:
-	AG_SOLO_BASEDIR=$$PWD/t9/$(BASE_PORT) $(AG_SOLO) setup --network-config=http://localhost:8001/network-config --webport=$(BASE_PORT)
+	AG_SOLO_BASEDIR=$$PWD/t9/$(BASE_PORT) $(AG_SOLO) setup --network-config=http://localhost:8001/network-config --webport=$(BASE_PORT) --webhost=0.0.0.0
 
 BOOT_COINS=1000000000000000ubld,500000000000000uist,100provisionpass,100sendpacketpass,1000000000000ibc/usdc1234,1000000000000ibc/atom1234
 
@@ -111,7 +111,7 @@ scenario2-setup-nobuild:
 	set -e; \
 		first_solo=true; \
 		for port in `seq $(BASE_PORT) $$(($(BASE_PORT) + $(NUM_SOLOS) - 1))`; do \
-			NODE_OPTIONS= $(AG_SOLO) init t1/$$port --webport=$$port; \
+			NODE_OPTIONS= $(AG_SOLO) init t1/$$port --webport=$$port --webhost=0.0.0.0; \
 			if $$first_solo; then \
 				first_solo=false; \
 				sed -e "s!@FIRST_SOLO_ADDRESS@!$$(cat t1/$$port/ag-cosmos-helper-address)!g" \
@@ -162,7 +162,7 @@ scenario2-run-chain-to-halt: t1/decentral-economy-config.json
 # Blow away all client state to try again without resetting the chain.
 scenario2-reset-client:
 	rm -rf t1/$(BASE_PORT)
-	$(AG_SOLO) init t1/$(BASE_PORT) --webport=$(BASE_PORT)
+	$(AG_SOLO) init t1/$(BASE_PORT) --webport=$(BASE_PORT) --webhost=0.0.0.0
 	$(MAKE) set-local-gci-ingress
 
 # Declare that the BASE_PORT should draw fees from its owner.
@@ -282,6 +282,9 @@ t1-start-ag-solo: t1/$(BASE_PORT)/cosmos-client-account.setup t1/$(BASE_PORT)/co
 		SOLO_OTEL_EXPORTER_PROMETHEUS_PORT=$(SOLO_OTEL_EXPORTER_PROMETHEUS_PORT) \
 		$(AG_SOLO) start
 
+open-ag-solo:
+	agoric open --repl --hostport 0.0.0.0:8000
+
 scenario2-core-eval: $(EVAL_CLEAN)
 	$(AGCH) --home=t1/bootstrap tx gov submit-proposal swingset-core-eval \
 		$(EVAL_PERMIT) $(EVAL_CLEAN) \
@@ -305,7 +308,7 @@ scenario2-vote:
 VATWORKER=local
 scenario3-setup:
 	rm -rf t3
-	NODE_OPTIONS= $(AG_SOLO) init t3 --egresses=fake --webport=$(BASE_PORT) --defaultManagerType=$(VATWORKER)
+	NODE_OPTIONS= $(AG_SOLO) init t3 --egresses=fake --webport=$(BASE_PORT) --webhost=0.0.0.0 --defaultManagerType=$(VATWORKER)
 	@echo 'Execute `make scenario3-run` to run the client and simulated chain'
 
 # This runs both the client and the fake chain.

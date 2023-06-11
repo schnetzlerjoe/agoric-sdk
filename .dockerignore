@@ -1,5 +1,4 @@
 **/node_modules
-**/.git
 docker
 packages/cosmic-swingset/t[0-9]
 packages/cosmic-swingset/t[0-9].*
