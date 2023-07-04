@@ -51,7 +51,7 @@ const safeJSONParseObject = s => {
  */
 export const parseICS20TransferPacket = async packet => {
   const ics20Packet = safeJSONParseObject(packet);
-  const { amount, denom, receiver, memo } = ics20Packet;
+  const { amount, denom, receiver, memo, sender } = ics20Packet;
 
   assert.typeof(denom, 'string', X`Denom ${denom} must be a string`);
   assert.typeof(receiver, 'string', X`Receiver ${receiver} must be a string`);
@@ -67,7 +67,8 @@ export const parseICS20TransferPacket = async packet => {
     depositAddress: receiver,
     remoteDenom: denom,
     value,
-    memo
+    memo,
+    sender
   });
 };
 
@@ -82,7 +83,8 @@ export const makeICS20TransferPacket = async ({
   value,
   remoteDenom,
   depositAddress,
-  memo
+  memo,
+  sender
 }) => {
   // We're using Nat as a dynamic check for overflow.
   // @ts-expect-error - this causes errors on some versions of TS, but not others.
@@ -94,7 +96,7 @@ export const makeICS20TransferPacket = async ({
     amount: stringValue,
     denom: remoteDenom,
     receiver: depositAddress,
-    sender: DUMMY_SENDER_ADDRESS,
+    sender,
     memo
   };
 
