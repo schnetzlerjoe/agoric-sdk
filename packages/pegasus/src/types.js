@@ -110,6 +110,7 @@
 /**
  * @typedef {object} PegasusConnectionKit
  * @property {ConnectionHandler} handler
+ * @property {ConnectionHandler} pfmHandler
  * @property {Subscription<PegasusConnection>} subscription
  */
 
@@ -128,4 +129,27 @@
 
 /**
  * @typedef {object} PFMParams
+ */
+
+/**
+ * @typedef {Object} PFMTransfer
+ * @property {string} receiver - The receiver's account identifier.
+ * @property {string} port - The port being used.
+ * @property {string} channel - The communication channel identifier.
+ * @property {number} retries - Number of retries allowed.
+ * @property {string} next - Next memo to append to the transfer.
+ */
+
+/**
+ * @typedef {Object} PFMCall
+ * @property {string} address - The address of the contract.
+ * @property {string} contractKey - The key of the contract.
+ * @property {string} functionName - The function to be called on the contract.
+ * @property {string} args - The arguments for the function call, in JSON string format.
+ */
+
+/**
+ * @typedef {Object} Forward
+ * @property {PFMTransfer} [transfer] - Details of the transfer PFM operation.
+ * @property {PFMCall} [call] - Details of the PFM contract call operation.
  */
