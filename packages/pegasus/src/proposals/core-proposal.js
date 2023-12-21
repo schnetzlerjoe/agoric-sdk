@@ -26,6 +26,9 @@ export const getManifestForPegasus = ({ restoreRef }, { pegasusRef }) => ({
         consume: { [CONTRACT_NAME]: t },
       },
     },
+    [publishConnections.name]: {
+      consume: { pegasusConnections: t, client: t },
+    },
   },
   installations: {
     [CONTRACT_NAME]: restoreRef(pegasusRef),
@@ -70,10 +73,10 @@ export const addPegasusTransferPort = async (
       const { localAddr, actions } = connectionState;
       if (actions) {
         // We're open and ready for business.
-        pegasusConnectionsAdmin.update(localAddr, connectionState);
+        E(pegasusConnectionsAdmin).update(localAddr, connectionState); // !!! Wrap around E()
       } else {
         // We're closed.
-        pegasusConnectionsAdmin.delete(localAddr);
+        E(pegasusConnectionsAdmin).delete(localAddr); // !!! Wrap around E()
       }
     },
   });
@@ -106,3 +109,13 @@ export const listenPegasus = async ({
   return addPegasusTransferPort(port, pegasus, pegasusNameAdmin);
 };
 harden(listenPegasus);
+
+export const publishConnections = async ({
+  consume: { pegasusConnections: pegasusConnectionsP, client },
+}) => {
+  const pegasusConnections = await pegasusConnectionsP;
+  // FIXME: Be sure only to give the client the connections if _addr is on the
+  // allowlist.
+  return E(client).assignBundle([_addr => ({ pegasusConnections })]);
+};
+harden(publishConnections);
