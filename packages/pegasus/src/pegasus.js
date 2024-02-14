@@ -10,7 +10,6 @@ import {
 import { makeSubscriptionKit } from '@agoric/notifier';
 
 import '@agoric/vats/exported.js';
-import '@agoric/swingset-vat/src/vats/network/types.js';
 import '@agoric/zoe/exported.js';
 
 import '../exported.js';
@@ -304,9 +303,9 @@ const makePegasus = (zcf, board, namesByAddress) => {
         checkAbort = () => {
           throw reason;
         };
-        pegs.forEach(peg => {
+        for (const peg of pegs) {
           pegToDenomState.delete(peg);
-        });
+        }
       },
     });
     return pegasusConnectionActions;
@@ -316,8 +315,8 @@ const makePegasus = (zcf, board, namesByAddress) => {
     /**
      * Return a handler that can be used with the Network API.
      *
-     * @param {ERef<TransferProtocol>} [transferProtocol=DEFAULT_TRANSFER_PROTOCOL]
-     * @param {ERef<DenomTransformer>} [denomTransformer=DEFAULT_DENOM_TRANSFORMER]
+     * @param {ERef<TransferProtocol>} [transferProtocol]
+     * @param {ERef<DenomTransformer>} [denomTransformer]
      * @returns {PegasusConnectionKit}
      */
     makePegasusConnectionKit(
@@ -385,9 +384,8 @@ const makePegasus = (zcf, board, namesByAddress) => {
         async onReceive(c, packetBytes) {
           const doReceive = async () => {
             // Dispatch the packet to the appropriate Peg for this connection.
-            const parts = await E(transferProtocol).parseTransferPacket(
-              packetBytes,
-            );
+            const parts =
+              await E(transferProtocol).parseTransferPacket(packetBytes);
 
             const { remoteDenom: receiveDenom } = parts;
             assert.typeof(receiveDenom, 'string');
@@ -458,9 +456,11 @@ const makePegasus = (zcf, board, namesByAddress) => {
      *
      * @param {ERef<Peg>} pegP the peg over which to transfer
      * @param {DepositAddress} depositAddress the remote receiver's address
+     * @param {string} [memo] the memo to attach to ics transfer packet
+     * @param {SenderOptions} [opts] additional sender options
      * @returns {Promise<Invitation>} to transfer, make an offer of { give: { Transfer: pegAmount } } to this invitation
      */
-    async makeInvitationToTransfer(pegP, depositAddress) {
+    async makeInvitationToTransfer(pegP, depositAddress, memo = '', opts = {}) {
       // Verify the peg.
       const peg = await pegP;
       const denomState = pegToDenomState.get(peg);
@@ -482,7 +482,7 @@ const makePegasus = (zcf, board, namesByAddress) => {
        */
       const offerHandler = zcfSeat => {
         assertProposalShape(zcfSeat, TRANSFER_PROPOSAL_SHAPE);
-        send(zcfSeat, depositAddress);
+        send(zcfSeat, depositAddress, memo, opts);
       };
 
       return zcf.makeInvitation(offerHandler, `pegasus ${sendDenom} transfer`);

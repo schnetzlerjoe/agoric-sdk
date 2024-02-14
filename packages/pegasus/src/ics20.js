@@ -10,15 +10,15 @@ import { assert, details as X, Fail } from '@agoric/assert';
  * @property {Denom} denom The denomination of the amount
  * @property {string} sender The sender address
  * @property {DepositAddress} receiver The receiver deposit address
+ * @property {string} memo The packet memo
  */
 
 // As specified in ICS20, the success result is a base64-encoded '\0x1' byte.
 const ICS20_TRANSFER_SUCCESS_RESULT = 'AQ==';
 
 // ibc-go as late as v3 requires the `sender` to be nonempty, but doesn't
-// actually use it on the receiving side.  We don't need it on the sending side,
-// either, so we can just omit it.
-export const DUMMY_SENDER_ADDRESS = 'pegasus';
+// actually use it on the receiving side.
+export const DEFAULT_SENDER_ADDRESS = 'pegasus';
 
 /**
  * @param {string} s
@@ -50,10 +50,16 @@ const safeJSONParseObject = s => {
  */
 export const parseICS20TransferPacket = async packet => {
   const ics20Packet = safeJSONParseObject(packet);
-  const { amount, denom, receiver } = ics20Packet;
+  const { amount, denom, receiver, memo, opts } = ics20Packet;
 
   assert.typeof(denom, 'string', X`Denom ${denom} must be a string`);
   assert.typeof(receiver, 'string', X`Receiver ${receiver} must be a string`);
+  memo === undefined ||
+    assert.typeof(
+      memo,
+      'string',
+      X`Memo ${memo} must be a string or 'undefined'`,
+    );
 
   // amount is a string in JSON.
   assert.typeof(amount, 'string', X`Amount ${amount} must be a string`);
@@ -66,6 +72,8 @@ export const parseICS20TransferPacket = async packet => {
     depositAddress: receiver,
     remoteDenom: denom,
     value,
+    memo,
+    opts,
   });
 };
 
@@ -80,6 +88,8 @@ export const makeICS20TransferPacket = async ({
   value,
   remoteDenom,
   depositAddress,
+  memo,
+  opts: { sender = DEFAULT_SENDER_ADDRESS },
 }) => {
   // We're using Nat as a dynamic check for overflow.
   const stringValue = String(Nat(value));
@@ -90,7 +100,8 @@ export const makeICS20TransferPacket = async ({
     amount: stringValue,
     denom: remoteDenom,
     receiver: depositAddress,
-    sender: DUMMY_SENDER_ADDRESS,
+    sender,
+    memo,
   };
 
   return JSON.stringify(ics20);
