@@ -209,6 +209,9 @@ export const makeCourierMaker =
         }
         let args = JSON.parse(argString)
         const instance = await E(namesByAddress).lookup(address, contractKey);
+        if (!instance) {
+          throw new Error(`Contract not found: at address ${address} with key ${contractKey}`)
+        }
         args['funds'] = payout;
         const result = await E(instance.publicFacet)[functionName](args);
         console.log("Completed PFM Call Forward: ", forward.call);
