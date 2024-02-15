@@ -9,7 +9,7 @@ import {
 } from '@agoric/zoe/src/contractSupport/index.js';
 import { makeSubscriptionKit } from '@agoric/notifier';
 
-import '@agoric/network/exported.js';
+import '@agoric/vats/exported.js';
 import '@agoric/zoe/exported.js';
 
 import '../exported.js';

@@ -1,8 +1,7 @@
 // @ts-check
-/* eslint @typescript-eslint/no-floating-promises: "warn" */
 import { E, Far } from '@endo/far';
 import { makeNameHubKit } from '@agoric/vats/src/nameHub.js';
-import { observeIteration, subscribeEach } from '@agoric/notifier';
+import { observeIteration } from '@agoric/notifier';
 
 export const CONTRACT_NAME = 'Pegasus';
 
@@ -25,6 +24,9 @@ export const getManifestForPegasus = ({ restoreRef }, { pegasusRef }) => ({
       instance: {
         consume: { [CONTRACT_NAME]: t },
       },
+    },
+    [publishConnections.name]: {
+      consume: { pegasusConnections: t, client: t },
     },
   },
   installations: {
@@ -65,15 +67,15 @@ export const addPegasusTransferPort = async (
   pegasusConnectionsAdmin,
 ) => {
   const { handler, subscription } = await E(pegasus).makePegasusConnectionKit();
-  observeIteration(subscribeEach(subscription), {
+  observeIteration(subscription, {
     updateState(connectionState) {
       const { localAddr, actions } = connectionState;
       if (actions) {
         // We're open and ready for business.
-        void E(pegasusConnectionsAdmin).update(localAddr, connectionState);
+        E(pegasusConnectionsAdmin).update(localAddr, connectionState); // !!! Wrap around E()
       } else {
         // We're closed.
-        void E(pegasusConnectionsAdmin).delete(localAddr);
+        E(pegasusConnectionsAdmin).delete(localAddr); // !!! Wrap around E()
       }
     },
   });
@@ -106,3 +108,13 @@ export const listenPegasus = async ({
   return addPegasusTransferPort(port, pegasus, pegasusNameAdmin);
 };
 harden(listenPegasus);
+
+export const publishConnections = async ({
+ consume: { pegasusConnections: pegasusConnectionsP, client },
+}) => {
+const pegasusConnections = await pegasusConnectionsP;
+// FIXME: Be sure only to give the client the connections if _addr is on the
+// allowlist.
+return E(client).assignBundle([_addr => ({ pegasusConnections })]);
+};
+harden(publishConnections);
