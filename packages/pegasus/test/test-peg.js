@@ -1,3 +1,4 @@
+/* eslint @typescript-eslint/no-floating-promises: "warn" */
 import { test } from '@agoric/swingset-vat/tools/prepare-test-env-ava.js';
 
 import path from 'path';
@@ -34,7 +35,7 @@ const makeAsyncIteratorFromSubscription = sub =>
  * @param {import('ava').Assertions} t
  */
 async function testRemotePeg(t) {
-  t.plan(20);
+  t.plan(28);
 
   /**
    * @type {PromiseRecord<import('@agoric/ertp').DepositFacet>}
@@ -50,16 +51,28 @@ async function testRemotePeg(t) {
       throw Error(`unrecognized board id ${id}`);
     },
   });
-  const fakeNamesByAddress = Far('fakeNamesByAddress', {
-    lookup(...keys) {
-      t.is(keys[0], 'agoric1234567', 'unrecognized fakeNamesByAddress');
-      t.is(keys[1], 'depositFacet', 'lookup not for the depositFacet');
-      t.is(keys.length, 2);
-      return localDepositFacet;
-    },
-  });
 
   const zoe = makeZoeForTest();
+
+  // Pack and launch test contract for PFM
+  const contractBundlePFM = await bundleSource(`${dirname}/contract-test-pfm.js`);
+  const installationHandlePfmTest = await E(zoe).install(contractBundlePFM);
+
+  const instancePfmTest = await E(zoe).startInstance(
+    installationHandlePfmTest
+  );
+
+  const fakeNamesByAddress = Far('fakeNamesByAddress', {
+    lookup(...keys) {
+      if (keys[0] === 'agoric1234567' && keys[1] === 'depositFacet') {
+        return localDepositFacet
+      }
+      if (keys[0] === 'agoric1234567' && keys[1] === 'pfmTest') {
+        return instancePfmTest
+      }
+      throw Error(`unrecognized namesByAddress lookup ${keys}`);
+    },
+  });
 
   // Pack the contract.
   const contractBundle = await bundleSource(contractPath);
@@ -72,7 +85,7 @@ async function testRemotePeg(t) {
   );
 
   /**
-   * @type {import('../src/pegasus').Pegasus}
+   * @type {import('../src/pegasus.js').Pegasus}
    */
   const pegasus = publicAPI;
   const network = makeNetworkProtocol(makeLoopbackProtocolHandler());
@@ -83,7 +96,7 @@ async function testRemotePeg(t) {
   /**
    * Pretend we're Gaia.
    *
-   * @type {import('@agoric/swingset-vat/src/vats/network').Connection?}
+   * @type {import('@agoric/network/src.js').Connection?}
    */
   let gaiaConnection;
   E(portP).addListener(
@@ -95,17 +108,47 @@ async function testRemotePeg(t) {
           },
           async onReceive(_c, packetBytes) {
             const packet = JSON.parse(packetBytes);
-            t.deepEqual(
-              packet,
-              {
-                amount: '100000000000000000001',
-                denom: 'portdef/chanabc/uatom',
-                receiver: 'markaccount',
-                sender: 'pegasus',
-              },
-              'expected transfer packet',
-            );
-            return JSON.stringify({ result: 'AQ==' });
+            if (packet.memo) {
+              if (packet.memo === "PFM Transfer") {
+                t.deepEqual(
+                  packet,
+                  {
+                    amount: '100000000000000000001',
+                    denom: 'portdef/chanabc/uatom',
+                    memo: 'PFM Transfer',
+                    receiver: 'markaccount',
+                    sender: 'agoric1234567',
+                  },
+                  'expected PFM Transfer packet',
+                );
+                return JSON.stringify({ result: 'AQ==' });
+              }
+              t.deepEqual(
+                packet,
+                {
+                  amount: '100000000000000000001',
+                  denom: 'portdef/chanabc/uatom',
+                  memo: 'I am a memo!',
+                  receiver: 'markaccount',
+                  sender: 'agoric1jmd7lwdyykrxm5h83nlhg74fctwnky04ufpqtc',
+                },
+                'expected memo transfer packet',
+              );
+              return JSON.stringify({ result: 'AQ==' });
+            } else {
+              t.deepEqual(
+                packet,
+                {
+                  amount: '100000000000000000001',
+                  denom: 'portdef/chanabc/uatom',
+                  memo: '',
+                  receiver: 'markaccount',
+                  sender: 'pegasus',
+                },
+                'expected transfer packet',
+              );
+              return JSON.stringify({ result: 'AQ==' });
+            }
           },
         });
       },
@@ -113,14 +156,13 @@ async function testRemotePeg(t) {
   );
 
   // Pretend we're Agoric.
-  const { handler: chandler, subscription: connectionSubscription } = await E(
-    pegasus,
-  ).makePegasusConnectionKit();
+  const { handler: chandler, subscription: connectionSubscription } =
+    await E(pegasus).makePegasusConnectionKit();
   const connP = E(portP).connect(portName, chandler);
 
   // Get some local Atoms.
   const sendPacket = {
-    amount: '100000000000000000001',
+    amount: '400000000000000000004',
     denom: 'uatom',
     receiver: '0x1234',
     sender: 'FIXME:sender',
@@ -172,7 +214,7 @@ async function testRemotePeg(t) {
   const localAtomsAmount = await E(localPurseP).getCurrentAmount();
   t.deepEqual(
     localAtomsAmount,
-    { brand: localBrand, value: 100000000000000000001n },
+    { brand: localBrand, value: 400000000000000000004n },
     'we received the shadow atoms',
   );
 
@@ -195,7 +237,7 @@ async function testRemotePeg(t) {
   const localAtomsAmount2 = await E(localPurseP).getCurrentAmount();
   t.deepEqual(
     localAtomsAmount2,
-    { brand: localBrand, value: 100000000000000000171n },
+    { brand: localBrand, value: 400000000000000000174n },
     'we received more shadow atoms',
   );
 
@@ -219,18 +261,24 @@ async function testRemotePeg(t) {
     'rejecting transfers works',
   );
 
-  const localAtoms = await E(localPurseP).withdraw(localAtomsAmount);
+  // test sending with memo
+  const localAtoms = await E(localPurseP).withdraw({
+    brand: localBrand,
+    value: 100000000000000000001n,
+  });
 
   const allegedName = await E(pegP).getAllegedName();
   t.is(allegedName, 'Gaia', 'alleged peg name is equal');
   const transferInvitation = await E(pegasus).makeInvitationToTransfer(
     pegP,
     'markaccount',
+    'I am a memo!',
+    { sender: 'agoric1jmd7lwdyykrxm5h83nlhg74fctwnky04ufpqtc' },
   );
   const seat = await E(zoe).offer(
     transferInvitation,
     {
-      give: { Transfer: localAtomsAmount },
+      give: { Transfer: { brand: localBrand, value: 100000000000000000001n } },
     },
     { Transfer: localAtoms },
   );
@@ -245,6 +293,79 @@ async function testRemotePeg(t) {
 
   const stillIsLive = await E(localIssuerP).isLive(localAtoms);
   t.assert(!stillIsLive, 'payment is consumed');
+
+  // test sending without memo
+  const localAtoms2 = await E(localPurseP).withdraw({
+    brand: localBrand,
+    value: 100000000000000000001n,
+  });
+
+  const transferInvitation2 = await E(pegasus).makeInvitationToTransfer(
+    pegP,
+    'markaccount',
+  );
+  const seat2 = await E(zoe).offer(
+    transferInvitation2,
+    {
+      give: { Transfer: { brand: localBrand, value: 100000000000000000001n } },
+    },
+    { Transfer: localAtoms2 },
+  );
+  const outcome2 = await seat2.getOfferResult();
+  t.is(outcome2, undefined, 'transfer is successful');
+
+  const paymentPs2 = await seat2.getPayouts();
+  const refundAmount2 = await E(localIssuerP).getAmountOf(paymentPs2.Transfer);
+
+  const isEmptyRefund2 = AmountMath.isEmpty(refundAmount2, localBrand);
+  t.assert(isEmptyRefund2, 'no refund from success');
+
+  const stillIsLive2 = await E(localIssuerP).isLive(localAtoms2);
+  t.assert(!stillIsLive2, 'payment is consumed');
+
+  // test sending with PFM memo fungible IBC forward
+  /** @type {Forward} */
+  const transferForward = {
+    transfer: {
+      receiver: "markaccount",
+      port: "pegasus",
+      channel: "channel-0",
+      retries: 2,
+    }
+  }
+
+  const sendPacketPfmTransfer = {
+    amount: '100000000000000000001',
+    denom: 'uatom',
+    receiver: 'agoric1234567',
+    sender: 'FIXME:sender2',
+    memo: JSON.stringify(transferForward)
+  };
+  t.assert(await connP);
+  const sendAckDataPPfmTransfer = await E(gaiaConnection).send(JSON.stringify(sendPacketPfmTransfer));
+  // Should return empty ack because the ack will come from the final forward
+  t.deepEqual(sendAckDataPPfmTransfer, '', 'Agoric PFM forwarded the atoms with PFM transfer memo');
+
+  // test sending with PFM memo forward contract call
+  /** @type {Forward} */
+  const callForward = {
+    call: {
+      address: "agoric1234567",
+      contractKey: "pfmTest",
+      functionName: "helloWorld",
+      args: JSON.stringify({"name": "PFM Land"})
+    }
+  }
+  const sendPacketPFMCall = {
+    amount: '100000000000000000001',
+    denom: 'uatom',
+    receiver: 'agoric1234567',
+    sender: 'FIXME:sender2',
+    memo: JSON.stringify(callForward)
+  };
+  t.assert(await connP);
+  const sendAckDataPPFMCall = await E(gaiaConnection).send(JSON.stringify(sendPacketPFMCall));
+  t.deepEqual(JSON.parse(sendAckDataPPFMCall), {"result":"AQ=="}, 'Gaia sent the atoms and then a contract was called with the PFM');
 
   await E(connP).close();
   await t.throwsAsync(() => remoteDenomAit.next(), {
