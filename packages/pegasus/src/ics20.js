@@ -1,11 +1,11 @@
 // @ts-check
-import { Nat } from '@agoric/nat';
+import { Nat } from '@endo/nat';
 import { Far } from '@endo/far';
 import { assert, details as X, Fail } from '@agoric/assert';
 
 /**
  * @typedef {object} ICS20TransferPacket Packet shape defined at:
- * https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer#data-structures
+ * https://github.com/cosmos/ibc/tree/HEAD/spec/app/ics-020-fungible-token-transfer#data-structures
  * @property {string} amount The extent of the amount
  * @property {Denom} denom The denomination of the amount
  * @property {string} sender The sender address
@@ -55,6 +55,12 @@ export const parseICS20TransferPacket = async packet => {
 
   assert.typeof(denom, 'string', X`Denom ${denom} must be a string`);
   assert.typeof(receiver, 'string', X`Receiver ${receiver} must be a string`);
+  memo === undefined ||
+    assert.typeof(
+      memo,
+      'string',
+      X`Memo ${memo} must be a string or 'undefined'`,
+    );
 
   // amount is a string in JSON.
   assert.typeof(amount, 'string', X`Amount ${amount} must be a string`);
@@ -87,7 +93,6 @@ export const makeICS20TransferPacket = async ({
   sender
 }) => {
   // We're using Nat as a dynamic check for overflow.
-  // @ts-expect-error - this causes errors on some versions of TS, but not others.
   const stringValue = String(Nat(value));
 
   // Generate the ics20-1 packet.
@@ -97,7 +102,7 @@ export const makeICS20TransferPacket = async ({
     denom: remoteDenom,
     receiver: depositAddress,
     sender,
-    memo
+    memo,
   };
 
   return JSON.stringify(ics20);
@@ -122,7 +127,7 @@ export const assertICS20TransferPacketAck = async ack => {
 
 /**
  * Create results of the transfer.  Acknowledgement shape defined at:
- * https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer#data-structures
+ * https://github.com/cosmos/ibc/tree/HEAD/spec/app/ics-020-fungible-token-transfer#data-structures
  *
  * @param {boolean} success
  * @param {any} error

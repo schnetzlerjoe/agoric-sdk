@@ -9,8 +9,7 @@ import {
 } from '@agoric/zoe/src/contractSupport/index.js';
 import { makeSubscriptionKit } from '@agoric/notifier';
 
-import '@agoric/vats/exported.js';
-import '@agoric/swingset-vat/src/vats/network/types.js';
+import '@agoric/network/exported.js';
 import '@agoric/zoe/exported.js';
 
 import '../exported.js';
@@ -39,8 +38,8 @@ const TRANSFER_PROPOSAL_SHAPE = {
 const makePegasus = (zcf, board, namesByAddress) => {
   /**
    * @typedef {object} LocalDenomState
-   * @property {Address} localAddr
-   * @property {Address} remoteAddr
+   * @property {string} localAddr
+   * @property {string} remoteAddr
    * @property {LegacyMap<Denom, PromiseRecord<Courier>>} receiveDenomToCourierPK
    * @property {IterationObserver<Denom>} receiveDenomPublication
    * @property {Subscription<Denom>} remoteDenomSubscription
@@ -304,9 +303,9 @@ const makePegasus = (zcf, board, namesByAddress) => {
         checkAbort = () => {
           throw reason;
         };
-        pegs.forEach(peg => {
+        for (const peg of pegs) {
           pegToDenomState.delete(peg);
-        });
+        }
       },
     });
     return pegasusConnectionActions;
@@ -316,8 +315,8 @@ const makePegasus = (zcf, board, namesByAddress) => {
     /**
      * Return a handler that can be used with the Network API.
      *
-     * @param {ERef<TransferProtocol>} [transferProtocol=DEFAULT_TRANSFER_PROTOCOL]
-     * @param {ERef<DenomTransformer>} [denomTransformer=DEFAULT_DENOM_TRANSFORMER]
+     * @param {ERef<TransferProtocol>} [transferProtocol]
+     * @param {ERef<DenomTransformer>} [denomTransformer]
      * @returns {PegasusConnectionKit}
      */
     makePegasusConnectionKit(
@@ -385,9 +384,8 @@ const makePegasus = (zcf, board, namesByAddress) => {
         async onReceive(c, packetBytes) {
           const doReceive = async () => {
             // Dispatch the packet to the appropriate Peg for this connection.
-            const parts = await E(transferProtocol).parseTransferPacket(
-              packetBytes,
-            );
+            const parts =
+              await E(transferProtocol).parseTransferPacket(packetBytes);
 
             const { remoteDenom: receiveDenom } = parts;
             assert.typeof(receiveDenom, 'string');
@@ -443,8 +441,113 @@ const makePegasus = (zcf, board, namesByAddress) => {
         },
       };
 
+      /** @type {ConnectionHandler} */
+      const pfmHandler = {
+        async onOpen(c, localAddr, remoteAddr) {
+          // Register `c` with the table of Peg receivers.
+          const {
+            subscription: remoteDenomSubscription,
+            publication: receiveDenomPublication,
+          } = makeSubscriptionKit();
+          const receiveDenomToCourierPK = makeLegacyMap('Denomination');
+
+          /** @type {LocalDenomState} */
+          const localDenomState = {
+            localAddr,
+            remoteAddr,
+            receiveDenomToCourierPK,
+            lastDenomNonce: 0n,
+            receiveDenomPublication,
+            remoteDenomSubscription,
+            abort: reason => {
+              // eslint-disable-next-line no-use-before-define
+              actions.abort(reason);
+            },
+          };
+
+          // The courier is the only thing that we use to send messages to `c`.
+          const makeCourier = makeCourierMaker(c);
+          const actions = makePegasusConnectionActions({
+            localDenomState,
+            makeCourier,
+            transferProtocol,
+            denomTransformer,
+          });
+
+          connectionToLocalDenomState.init(c, localDenomState);
+
+          /** @type {PegasusConnection} */
+          const state = harden({
+            localAddr,
+            remoteAddr,
+            actions,
+            remoteDenomSubscription,
+          });
+          connectionPublication.updateState(state);
+        },
+        async onReceive(c, packetBytes) {
+          const doReceive = async () => {
+            // Dispatch the packet to the appropriate Peg for this connection.
+            const parts =
+              await E(transferProtocol).parseTransferPacket(packetBytes);
+
+            const { remoteDenom: receiveDenom } = parts;
+            assert.typeof(receiveDenom, 'string');
+
+            const { receiveDenomToCourierPK, receiveDenomPublication } =
+              connectionToLocalDenomState.get(c);
+
+            if (!receiveDenomToCourierPK.has(receiveDenom)) {
+              // This is the first time we've heard of this denomination.
+              receiveDenomPublication.updateState(receiveDenom);
+            }
+
+            // Wait for the courier to be instantiated.
+            const courierPK = getCourierPK(
+              receiveDenom,
+              receiveDenomToCourierPK,
+            );
+            const { receivePfm } = await courierPK.promise;
+            return receivePfm(parts);
+          };
+
+          return doReceive().catch(error =>
+            E(transferProtocol).makeTransferPacketAck(false, error),
+          );
+        },
+        async onClose(c) {
+          // Unregister `c`.  Pending transfers will be rejected by the Network
+          // API.
+          const {
+            receiveDenomPublication,
+            receiveDenomToCourierPK,
+            localAddr,
+            remoteAddr,
+            abort,
+          } = connectionToLocalDenomState.get(c);
+          connectionToLocalDenomState.delete(c);
+          const err = assert.error(X`pegasusConnectionHandler closed`);
+          receiveDenomPublication.fail(err);
+          /** @type {PegasusConnection} */
+          const state = harden({
+            localAddr,
+            remoteAddr,
+          });
+          connectionPublication.updateState(state);
+          for (const courierPK of receiveDenomToCourierPK.values()) {
+            try {
+              courierPK.reject(err);
+            } catch (e) {
+              // Already resolved/rejected, so ignore.
+            }
+          }
+          abort(err);
+        },
+      };
+
       return harden({
         handler: Far('pegasusConnectionHandler', handler),
+        pfmHandler: Far('pegasusPFMConnectionHandler', pfmHandler),
         subscription: connectionSubscription,
       });
     },
