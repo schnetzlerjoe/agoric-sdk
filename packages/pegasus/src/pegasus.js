@@ -307,6 +307,9 @@ const makePegasus = (zcf, board, namesByAddress) => {
           pegToDenomState.delete(peg);
         }
       },
+      getPegs() {
+        return pegs
+      }
     });
     return pegasusConnectionActions;
   };
