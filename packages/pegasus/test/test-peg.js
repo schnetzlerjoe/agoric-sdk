@@ -68,7 +68,7 @@ async function testRemotePeg(t) {
         return localDepositFacet
       }
       if (keys[0] === 'agoric1234567' && keys[1] === 'pfmTest') {
-        return instancePfmTest
+        return instancePfmTest.publicFacet
       }
       throw Error(`unrecognized namesByAddress lookup ${keys}`);
     },
