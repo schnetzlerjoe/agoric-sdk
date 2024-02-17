@@ -100,9 +100,9 @@ export const makeCourierMaker =
         retain(zcfSeat, { Transfer: amount });
 
         // The payment is already escrowed, and proposed to retain, so try sending.
-        return E(connection)
+        return await E(connection)
           .send(transferPacket)
-          .then(ack => E(transferProtocol).assertTransferPacketAck(ack))
+          .then(async ack => E(transferProtocol).assertTransferPacketAck(ack))
           .then(
             _ => zcfSeat.exit(),
             reason => {
