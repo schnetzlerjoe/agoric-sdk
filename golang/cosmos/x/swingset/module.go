@@ -104,6 +104,11 @@ func (AppModule) Name() string {
 	return ModuleName
 }
 
+// For testing purposes
+func (am *AppModule) SetSwingStoreExportDir(dir string) {
+	am.swingStoreExportDir = dir
+}
+
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 func (am AppModule) Route() sdk.Route {
@@ -154,9 +159,9 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	return []abci.ValidatorUpdate{}
 }
 
-func (am AppModule) checkSwingStoreExportSetup() {
+func (am *AppModule) checkSwingStoreExportSetup() {
 	if am.swingStoreExportDir == "" {
-		panic(fmt.Errorf("SwingStore export dir not set"))
+		am.swingStoreExportDir = "/tmp/swingset_export"
 	}
 }
 
