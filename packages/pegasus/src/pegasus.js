@@ -408,7 +408,7 @@ const makePegasus = (zcf, board, namesByAddress) => {
               receiveDenomToCourierPK,
             );
             const { receive } = await courierPK.promise;
-            return receive(parts);
+            return await receive(parts);
           };
 
           return doReceive().catch(error =>
@@ -484,9 +484,9 @@ const makePegasus = (zcf, board, namesByAddress) => {
        *
        * @type {OfferHandler}
        */
-      const offerHandler = zcfSeat => {
+      const offerHandler = async zcfSeat => {
         assertProposalShape(zcfSeat, TRANSFER_PROPOSAL_SHAPE);
-        send(zcfSeat, depositAddress, memo, opts);
+        await send(zcfSeat, depositAddress, memo, opts);
       };
 
       return zcf.makeInvitation(offerHandler, `pegasus ${sendDenom} transfer`);

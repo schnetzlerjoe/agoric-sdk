@@ -196,19 +196,19 @@ export const makeCourierMaker =
           if (forward.call) {
             const payout = await redeemPayment(zcfSeat, localAmount, userSeat);
             await handleCall(forward, payout, namesByAddress);
-            return E(transferProtocol).makeTransferPacketAck(true);
+            return await E(transferProtocol).makeTransferPacketAck(true);
           }
         }
 
         const payout = await redeemPayment(zcfSeat, localAmount, userSeat);
         E(depositFacet).receive(payout).catch(_ => {});
 
-        return E(transferProtocol).makeTransferPacketAck(true);
+        return await E(transferProtocol).makeTransferPacketAck(true);
 
       } catch (e) {
 
         console.error(e);
-        return E(transferProtocol).makeTransferPacketAck(false, e);
+        return await E(transferProtocol).makeTransferPacketAck(false, e);
 
       }
     };
