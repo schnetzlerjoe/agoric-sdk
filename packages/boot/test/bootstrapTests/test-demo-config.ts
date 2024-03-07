@@ -120,7 +120,7 @@ test('demo config meets loadgen constraint: no USDC', async t => {
 test.todo('demo config bootstrap succeeds');
 
 test('vtransfer', async t => {
-  const { buildProposal, controller, getOutboundMessages, runUtils } =
+  const { buildProposal, evalProposal, getOutboundMessages, runUtils } =
     t.context;
   const { EV } = runUtils;
 
@@ -170,28 +170,9 @@ test('vtransfer', async t => {
   // 1 interceptors for target
 
   // Tap into VTRANSFER_IBC_EVENT messages
-  t.log('building network proposal');
-  const proposal = await buildProposal(
-    '@agoric/builders/scripts/vats/test-vtransfer.js',
+  await evalProposal(
+    buildProposal('@agoric/builders/scripts/vats/test-vtransfer.js'),
   );
-
-  for await (const bundle of proposal.bundles) {
-    await controller.validateAndInstallBundle(bundle);
-  }
-  t.log('installed', proposal.bundles.length, 'bundles');
-
-  t.log('executing proposal');
-  const bridgeMessage = {
-    type: 'CORE_EVAL',
-    evals: proposal.evals,
-  };
-  t.log({ bridgeMessage });
-  const coreEvalBridgeHandler: BridgeHandler = await EV.vat(
-    'bootstrap',
-  ).consumeItem('coreEvalBridgeHandler');
-  await EV(coreEvalBridgeHandler).fromBridge(bridgeMessage);
-
-  t.log('network proposal executed');
 
   // simulate a Golang upcall with arbitrary payload
   await EV(vtransferBridgeManager).fromBridge({
