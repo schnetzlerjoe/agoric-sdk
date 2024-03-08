@@ -1,5 +1,31 @@
+// @ts-check
 /// <reference path="./types.js" />
 import { encodeBase64, decodeBase64 } from '@endo/base64';
+
+const { details: X } = assert;
+
+/**
+ * @param {unknown} specimen
+ * @returns {Data}
+ */
+export function coerceToData(specimen) {
+  if (typeof specimen === 'string') {
+    return specimen;
+  }
+
+  assert.typeof(specimen, 'object');
+
+  if (specimen == null) {
+    throw assert.fail(X`specimen ${specimen} is nullish`, TypeError);
+  }
+
+  if (!(Symbol.iterator in specimen)) {
+    throw assert.fail(X`specimen ${specimen} is not iterable`, TypeError);
+  }
+
+  // Good enough... it's iterable and can be coerced later.
+  return /** @type {Data} */ (specimen);
+}
 
 /**
  * Convert some data to bytes.
@@ -15,7 +41,7 @@ export function toBytes(data) {
     bytes = bytes.split('').map(c => c.charCodeAt(0));
   }
 
-  // We return the raw characters in the lower half of
+  // We return the raw octets from the lower 8-bits of
   // the String's representation.
   const buf = new Uint8Array(bytes);
   return String.fromCharCode.apply(null, buf);
