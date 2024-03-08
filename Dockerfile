@@ -20,6 +20,9 @@ RUN yarn install && yarn build
 # Expose necessary ports
 EXPOSE 8000 8000
 
+# Build everything needed
+RUN cd ./packages/cosmic-swingset && make scenario2-setup
+
 # Start the Agoric blockchain and ag-solo
 # You might need to use a script to start these services as they likely need to run in parallel
 COPY start-agoric.sh .

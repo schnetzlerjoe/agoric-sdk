@@ -103,7 +103,7 @@ scenario1-run-chain:
 scenario1-run-client:
 	AG_SOLO_BASEDIR=$$PWD/t9/$(BASE_PORT) $(AG_SOLO) setup --network-config=http://localhost:8001/network-config --webport=$(BASE_PORT)
 
-BOOT_COINS=1000000000000000ubld,500000000000000uist,100provisionpass,100sendpacketpass,1000000000000ibc/toyusdc,1000000000000ibc/toyatom
+BOOT_COINS=10000000000000000000ubld,5000000000000000000uist,100provisionpass,100sendpacketpass,1000000000000ibc/toyusdc,1000000000000ibc/toyatom
 
 # Deprecated.
 scenario2-setup-nobuild: scenario2-setup
@@ -126,9 +126,13 @@ scenario2-setup:
 	# Create the bootstrap account.
 	$(AGCH) --home=t1/bootstrap keys add bootstrap --keyring-backend=test
 	$(AGCH) --home=t1/bootstrap keys show -a bootstrap --keyring-backend=test > t1/bootstrap-address
-	$(AGCH) --home=t1/n0 add-genesis-account `cat t1/bootstrap-address` $(BOOT_COINS)
-	# Create the (singleton) chain node.
-	$(AGCH) --home=t1/n0 --keyring-dir=t1/bootstrap gentx --keyring-backend=test bootstrap 73000000ubld --chain-id=$(CHAIN_ID)
+	$(AGCH) --home=t1/n0 add-genesis-account `cat t1/bootstrap-address` 30000000ubld
+	# Create a validator chain node.
+	$(AGCH) --home=t1/n0 --keyring-dir=t1/bootstrap gentx --keyring-backend=test bootstrap 25000000ubld --chain-id=$(CHAIN_ID)
+	# Create the faucet account.
+	echo "orbit bench unit task food shock brand bracket domain regular warfare company announce wheel grape trust sphere boy doctor half guard ritual three ecology" | $(AGCH) --home=t1/bootstrap keys add faucet --keyring-backend=test --recover
+	$(AGCH) --home=t1/bootstrap keys show -a faucet --keyring-backend=test > t1/faucet-address
+	$(AGCH) --home=t1/n0 add-genesis-account `cat t1/faucet-address` $(BOOT_COINS)
 	$(AGCH) --home=t1/n0 collect-gentxs
 	$(AGCH) --home=t1/n0 validate-genesis
 	NODE_OPTIONS= ../agoric-cli/bin/agoric set-defaults --enable-cors --export-metrics ag-chain-cosmos t1/n0/config
