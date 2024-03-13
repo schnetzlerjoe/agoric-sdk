@@ -914,6 +914,7 @@ func unreleasedUpgradeHandler(app *GaiaApp, targetUpgrade string) func(sdk.Conte
 			vm.CoreProposalStepForModules(
 				"@agoric/builders/scripts/vats/init-network.js",
 				"@agoric/builders/scripts/vats/init-localchain.js",
+				"@agoric/builders/scripts/vats/init-transfer.js",
 			),
 		}
 
