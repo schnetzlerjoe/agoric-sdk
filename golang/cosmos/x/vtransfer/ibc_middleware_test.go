@@ -7,10 +7,14 @@ import (
 	"testing"
 
 	app "github.com/Agoric/agoric-sdk/golang/cosmos/app"
+	"github.com/Agoric/agoric-sdk/golang/cosmos/vm"
 	"github.com/cosmos/cosmos-sdk/store"
 	"github.com/stretchr/testify/suite"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
+
+	swingsettypes "github.com/Agoric/agoric-sdk/golang/cosmos/x/swingset/types"
+	vibctypes "github.com/Agoric/agoric-sdk/golang/cosmos/x/vibc/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -45,7 +49,7 @@ func SetupAgoricTestingApp() (ibctesting.TestingApp, map[string]json.RawMessage)
 	db := dbm.NewMemDB()
 	encCdc := app.MakeEncodingConfig()
 	controller := func(ctx context.Context, needReply bool, str string) (string, error) {
-		fmt.Printf("controller got: %s\n", str)
+		// fmt.Printf("controller got: %s\n", str)
 		// fmt.Fprintln(os.Stderr, "FIXME: Would upcall to controller with", str)
 		// FIXME: Unmarshal JSON and reply to the upcall.
 		jsonReply := `true`
@@ -126,6 +130,28 @@ func (s *IntegrationTestSuite) GetApp(chain *ibctesting.TestChain) *app.GaiaApp 
 	return app
 }
 
+func (s *IntegrationTestSuite) PeekQueue(chain *ibctesting.TestChain, queuePath string) ([]string, error) {
+	app := s.GetApp(chain)
+	k := app.VstorageKeeper
+	ctx := chain.GetContext()
+	head, err := k.GetIntValue(ctx, queuePath+".head")
+	if err != nil {
+		return nil, err
+	}
+	tail, err := k.GetIntValue(ctx, queuePath+".tail")
+	if err != nil {
+		return nil, err
+	}
+	length := tail.Sub(head).Int64()
+	values := make([]string, length)
+	var i int64
+	for i = 0; i < length; i++ {
+		path := fmt.Sprintf("%s.%s", queuePath, head.Add(sdk.NewInt(i)).String())
+		values[i] = k.GetEntry(ctx, path).StringValue()
+	}
+	return values, nil
+}
+
 func (s *IntegrationTestSuite) NewTransferPath() *ibctesting.Path {
 	path := ibctesting.NewPath(s.chainA, s.chainB)
 	path.EndpointA.ChannelID = "channel-0"
@@ -158,18 +184,35 @@ func (s *IntegrationTestSuite) SetupContract() *ibctesting.Path {
 	return path
 }
 
+func (s *IntegrationTestSuite) checkQueue(qvalues []string, expected []swingsettypes.InboundQueueRecord) {
+	// s.Require().Equal(len(expected), len(qvalues))
+	for i, qv := range qvalues {
+		if i >= len(expected) {
+			break
+		}
+		var qr swingsettypes.InboundQueueRecord
+		err := json.Unmarshal([]byte(qv), &qr)
+		s.Require().NoError(err)
+		expected[i].Context.TxHash = qr.Context.TxHash
+
+		expi, err := json.Marshal(expected[i])
+		s.Require().NoError(err)
+		s.Require().Equal(string(expi), qv)
+	}
+}
+
 func (s *IntegrationTestSuite) TestOnAcknowledgementPacket() {
 	path := s.NewTransferPath()
 	s.Require().Equal(path.EndpointA.ChannelID, "channel-0")
 
-	s.Run("OnReceiveTransferWithCallMemo", func() {
+	s.Run("OnReceiveTransferToReceiverTarget", func() {
 		// create a transfer packet
 		transfer := ibctransfertypes.NewFungibleTokenPacketData(
 			"uosmo",
 			"1000000",
 			s.chainA.SenderAccount.GetAddress().String(),
 			s.chainB.SenderAccount.GetAddress().String(),
-			`{"invokeWriteAcknowledgement": "foo"}`,
+			`"This is a JSON memo"`,
 		)
 
 		// send a transfer packet
@@ -194,17 +237,152 @@ func (s *IntegrationTestSuite) TestOnAcknowledgementPacket() {
 		s.coordinator.CommitBlock(s.chainA, s.chainB)
 
 		// Update Clients
-		// Update Clients
 		err = path.EndpointA.UpdateClient()
 		s.Require().NoError(err)
 		err = path.EndpointB.UpdateClient()
 		s.Require().NoError(err)
 		s.coordinator.CommitBlock(s.chainA, s.chainB)
 
+		{
+			qvalues, err := s.PeekQueue(s.chainA, "actionQueue")
+			s.Require().NoError(err)
+			expected := []swingsettypes.InboundQueueRecord{
+				{
+					Action: &vibctypes.ChannelOpenInitEvent{
+						ActionHeader: &vm.ActionHeader{
+							Type:        "VTRANSFER_IBC_EVENT",
+							BlockHeight: 11,
+							BlockTime:   1577923290,
+						},
+						Event:          "channelOpenInit",
+						Order:          "UNORDERED",
+						ConnectionHops: []string{"connection-0"},
+						PortID:         "transfer",
+						ChannelID:      "channel-0",
+						Counterparty: channeltypes.Counterparty{
+							PortId: "transfer",
+						},
+						Version:       "ics20-1",
+						AsyncVersions: false,
+					},
+					Context: swingsettypes.ActionContext{
+						BlockHeight: 11,
+						// TxHash is filled in below
+						MsgIdx: 0,
+					},
+				},
+				{
+					Action: &vibctypes.ChannelOpenAckEvent{
+						ActionHeader: &vm.ActionHeader{
+							Type:        "VTRANSFER_IBC_EVENT",
+							BlockHeight: 14,
+							BlockTime:   1577923320,
+						},
+						Event:               "channelOpenAck",
+						PortID:              "transfer",
+						ChannelID:           "channel-0",
+						CounterpartyVersion: "ics20-1",
+						Counterparty: channeltypes.Counterparty{
+							PortId:    "transfer",
+							ChannelId: "channel-0",
+						},
+						ConnectionHops: []string{"connection-0"},
+					},
+					Context: swingsettypes.ActionContext{
+						BlockHeight: 14,
+						// TxHash is filled in below
+						MsgIdx: 0,
+					},
+				},
+			}
+
+			s.checkQueue(qvalues, expected)
+		}
+
+		{
+			qvalues, err := s.PeekQueue(s.chainB, "actionQueue")
+			s.Require().NoError(err)
+
+			expected := []swingsettypes.InboundQueueRecord{
+				{
+					Action: &vibctypes.ChannelOpenTryEvent{
+						ActionHeader: &vm.ActionHeader{
+							Type:        "VTRANSFER_IBC_EVENT",
+							BlockHeight: 12,
+							BlockTime:   1577923305,
+						},
+						Event:          "channelOpenTry",
+						Order:          "UNORDERED",
+						ConnectionHops: []string{"connection-0"},
+						PortID:         "transfer",
+						ChannelID:      "channel-0",
+						Counterparty: channeltypes.Counterparty{
+							PortId:    "transfer",
+							ChannelId: "channel-0",
+						},
+						Version:       "ics20-1",
+						AsyncVersions: false,
+					},
+					Context: swingsettypes.ActionContext{
+						BlockHeight: 12,
+						// TxHash is filled in below
+						MsgIdx: 0,
+					},
+				},
+				{
+					Action: &vibctypes.ChannelOpenConfirmEvent{
+						ActionHeader: &vm.ActionHeader{
+							Type:        "VTRANSFER_IBC_EVENT",
+							BlockHeight: 15,
+							BlockTime:   1577923335,
+						},
+						Event:     "channelOpenConfirm",
+						PortID:    "transfer",
+						ChannelID: "channel-0",
+					},
+					Context: swingsettypes.ActionContext{
+						BlockHeight: 15,
+						// TxHash is filled in below
+						MsgIdx: 0,
+					},
+				},
+				{
+					Action: &vibctypes.ReceivePacketEvent{
+						ActionHeader: &vm.ActionHeader{
+							Type:        "VTRANSFER_IBC_EVENT",
+							BlockHeight: 21,
+							BlockTime:   1577923395,
+						},
+						Event: "receivePacket",
+						Packet: channeltypes.Packet{
+							Sequence:           1,
+							SourcePort:         "transfer",
+							SourceChannel:      "channel-0",
+							DestinationPort:    "transfer",
+							DestinationChannel: "channel-0",
+							Data:               transfer.GetBytes(),
+							TimeoutHeight:      timeoutHeight,
+							TimeoutTimestamp:   0,
+						},
+						Relayer: s.chainB.SenderAccount.GetAddress(),
+					},
+					Context: swingsettypes.ActionContext{
+						BlockHeight: 21,
+						// TxHash is filled in below
+						MsgIdx: 0,
+					},
+				},
+			}
+
+			s.checkQueue(qvalues, expected)
+		}
+
 		// acknowledge the transfer packet
 		ack := s.chainB.GetAcknowledgement(packet)
+		s.Require().NotNil(ack)
 		err = path.EndpointB.AcknowledgePacket(packet, ack)
 		s.Require().NoError(err)
+
 		// commit the receive on chainA
 		// Update Clients
 		err = path.EndpointA.UpdateClient()

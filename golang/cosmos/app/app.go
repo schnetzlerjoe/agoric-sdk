@@ -523,7 +523,7 @@ func NewAgoricApp(
 		ah := action.GetActionHeader()
 		ah.Type = "VTRANSFER_" + ah.Type
 
-		fmt.Println("@@@ vtransfer action", action)
+		// fmt.Println("@@@ vtransfer action", action)
 		return app.SwingSetKeeper.PushAction(ctx, action)
 	})
 	app.VtransferKeeper = vtransferkeeper.NewKeeper(appCodec, keys[vtransfer.StoreKey], vibcForVtransferKeeper)
@@ -587,10 +587,11 @@ func NewAgoricApp(
 		scopedTransferKeeper,
 	)
 
+	app.PacketForwardKeeper.SetTransferKeeper(app.TransferKeeper)
+
 	transferApp := transfer.NewAppModule(app.TransferKeeper)
 	var transferStack ibcporttypes.IBCModule
 	transferStack = transfer.NewIBCModule(app.TransferKeeper)
-	app.PacketForwardKeeper.SetTransferKeeper(app.TransferKeeper)
 	transferStack = packetforward.NewIBCMiddleware(
 		transferStack,
 		app.PacketForwardKeeper,
@@ -598,6 +599,7 @@ func NewAgoricApp(
 		packetforwardkeeper.DefaultForwardTransferPacketTimeoutTimestamp, // forward timeout
 		packetforwardkeeper.DefaultRefundTransferPacketTimeoutTimestamp,  // refund timeout
 	)
+
 	transferStack = vtransfer.NewIBCMiddleware(transferStack, app.VtransferKeeper)
 
 	app.ICAHostKeeper = icahostkeeper.NewKeeper(
