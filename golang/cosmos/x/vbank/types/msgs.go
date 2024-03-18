@@ -9,7 +9,11 @@ type VbankSingleBalanceUpdate struct {
 }
 
 type VbankBalanceUpdate struct {
-	Nonce   uint64                     `json:"nonce"`
-	Type    string                     `json:"type"`
-	Updated []VbankSingleBalanceUpdate `json:"updated"`
+	Type string `json:"type"`
+	// BlockHeight defaults to sdk.Context.BlockHeight().
+	BlockHeight int64 `json:"blockHeight,omitempty"`
+	// BlockTime defaults to sdk.Context.BlockTime().Unix().
+	BlockTime int64                      `json:"blockTime,omitempty"`
+	Nonce     uint64                     `json:"nonce"`
+	Updated   []VbankSingleBalanceUpdate `json:"updated"`
 }

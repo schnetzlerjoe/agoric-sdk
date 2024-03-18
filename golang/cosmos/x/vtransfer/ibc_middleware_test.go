@@ -14,6 +14,7 @@ import (
 	dbm "github.com/tendermint/tm-db"
 
 	swingsettypes "github.com/Agoric/agoric-sdk/golang/cosmos/x/swingset/types"
+	vbanktypes "github.com/Agoric/agoric-sdk/golang/cosmos/x/vbank/types"
 	vibctypes "github.com/Agoric/agoric-sdk/golang/cosmos/x/vibc/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -305,6 +306,26 @@ func (s *IntegrationTestSuite) TestOnAcknowledgementPacket() {
 
 			expected := []swingsettypes.InboundQueueRecord{
 				{
+					Action: &vbanktypes.VbankBalanceUpdate{
+						BlockHeight: 21,
+						BlockTime:   1577923395,
+						Type:        "VBANK_BALANCE_UPDATE",
+						Updated: []vbanktypes.VbankSingleBalanceUpdate{
+							{
+								Address: "cosmos1yl6hdjhmkf37639730gffanpzndzdpmhwlkfhr",
+								Denom:   "ibc/ED07A3391A112B175915CD8FAF43A2DA8E4790EDE12566649D0C2F97716B8518",
+								Amount:  "0",
+							},
+						},
+						Nonce: 1,
+					},
+					Context: swingsettypes.ActionContext{
+						BlockHeight: 21,
+						// TxHash is filled in below
+						MsgIdx: 0,
+					},
+				},
+				{
 					Action: &vibctypes.ChannelOpenTryEvent{
 						ActionHeader: &vm.ActionHeader{
 							Type:        "VTRANSFER_IBC_EVENT",
@@ -375,11 +396,6 @@ func (s *IntegrationTestSuite) TestOnAcknowledgementPacket() {
 			}
 
 			s.checkQueue(qvalues, expected)
-		}
-
-		// FIXME: Comment this out to see the GetAcknowledgement failure.
-		if true {
-			return
 		}
 
 		// acknowledge the transfer packet

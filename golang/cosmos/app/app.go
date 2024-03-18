@@ -625,8 +625,7 @@ func NewAgoricApp(
 	// - ibc-hooks wrapping Packet Forward Middleware, then IBC transfer
 	// - vIBC
 	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostIBCModule).
-		// TODO: AddRoute(ibctransfertypes.ModuleName, transferStack).
-		AddRoute(ibctransfertypes.ModuleName, vibc.NewIBCModule(app.VtransferKeeper)).
+		AddRoute(ibctransfertypes.ModuleName, transferStack).
 		AddRoute(vibc.ModuleName, vibcIBCModule)
 
 	// Seal the router
