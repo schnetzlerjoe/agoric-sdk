@@ -124,15 +124,11 @@ scenario2-setup:
 	  done; \
 	  sed -e "s!@PRIMARY_ADDRESS@!$$PRIMARY_ADDRESS!g" '$(ECONOMY_TEMPLATE)' > '$(ECONOMY_PROPOSALS)'
 	# Create the bootstrap account.
-	$(AGCH) --home=t1/bootstrap keys add bootstrap --keyring-backend=test
+	echo "orbit bench unit task food shock brand bracket domain regular warfare company announce wheel grape trust sphere boy doctor half guard ritual three ecology" | $(AGCH) --home=t1/bootstrap keys add bootstrap --keyring-backend=test --recover
 	$(AGCH) --home=t1/bootstrap keys show -a bootstrap --keyring-backend=test > t1/bootstrap-address
-	$(AGCH) --home=t1/n0 add-genesis-account `cat t1/bootstrap-address` 30000000ubld
+	$(AGCH) --home=t1/n0 add-genesis-account `cat t1/bootstrap-address` $(BOOT_COINS)
 	# Create a validator chain node.
 	$(AGCH) --home=t1/n0 --keyring-dir=t1/bootstrap gentx --keyring-backend=test bootstrap 25000000ubld --chain-id=$(CHAIN_ID)
-	# Create the faucet account.
-	echo "orbit bench unit task food shock brand bracket domain regular warfare company announce wheel grape trust sphere boy doctor half guard ritual three ecology" | $(AGCH) --home=t1/bootstrap keys add faucet --keyring-backend=test --recover
-	$(AGCH) --home=t1/bootstrap keys show -a faucet --keyring-backend=test > t1/faucet-address
-	$(AGCH) --home=t1/n0 add-genesis-account `cat t1/faucet-address` $(BOOT_COINS)
 	$(AGCH) --home=t1/n0 collect-gentxs
 	$(AGCH) --home=t1/n0 validate-genesis
 	NODE_OPTIONS= ../agoric-cli/bin/agoric set-defaults --enable-cors --export-metrics ag-chain-cosmos t1/n0/config
